@@ -8,6 +8,14 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TaskPlanner from "./pages/TaskPlanner";
 import NotFound from "./pages/NotFound";
+import MentalHealth from "./pages/MentalHealth";
+import Academics from "./pages/Academics";
+import Friendships from "./pages/Friendships";
+import Fitness from "./pages/Fitness";
+import Career from "./pages/Career";
+import Finance from "./pages/Finance";
+import Relationships from "./pages/Relationships";
+import Bullying from "./pages/Bullying";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +30,14 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks" element={<TaskPlanner />} />
+          <Route path="/mental-health" element={<MentalHealth />} />
+          <Route path="/academics" element={<Academics />} />
+          <Route path="/friendships" element={<Friendships />} />
+          <Route path="/fitness" element={<Fitness />} />
+          <Route path="/career" element={<Career />} />
+          <Route path="/finance" element={<Finance />} />
+          <Route path="/relationships" element={<Relationships />} />
+          <Route path="/bullying" element={<Bullying />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

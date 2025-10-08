@@ -52,8 +52,8 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
-  const handlePillarClick = (pillarName: string) => {
-    toast.info(`${pillarName} feature coming soon!`);
+  const handlePillarClick = (pillarId: string) => {
+    navigate(`/${pillarId}`);
   };
 
   if (!user) return null;
@@ -103,7 +103,7 @@ const Dashboard = () => {
                 <Card
                   key={pillar.id}
                   className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
-                  onClick={() => handlePillarClick(pillar.name)}
+                  onClick={() => handlePillarClick(pillar.id)}
                 >
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
                     <Icon className="w-6 h-6 text-white" />
