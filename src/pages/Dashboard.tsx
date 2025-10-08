@@ -100,17 +100,16 @@ const Dashboard = () => {
             {pillars.map((pillar) => {
               const Icon = pillar.icon;
               return (
-                <Button
+                <Card
                   key={pillar.id}
-                  variant="pillar"
+                  className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
                   onClick={() => handlePillarClick(pillar.name)}
-                  className="border-2 hover:border-primary/50"
                 >
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center mb-2`}>
+                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
                     <Icon className="w-6 h-6 text-white" />
                   </div>
-                  <span className="font-semibold text-base">{pillar.name}</span>
-                </Button>
+                  <span className="font-semibold text-base text-center">{pillar.name}</span>
+                </Card>
               );
             })}
           </div>
