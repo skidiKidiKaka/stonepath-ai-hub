@@ -104,7 +104,7 @@ const Dashboard = () => {
                   key={pillar.id}
                   variant="pillar"
                   onClick={() => handlePillarClick(pillar.name)}
-                  className="text-left border-2 hover:border-primary/50"
+                  className="border-2 hover:border-primary/50"
                 >
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center mb-2`}>
                     <Icon className="w-6 h-6 text-white" />

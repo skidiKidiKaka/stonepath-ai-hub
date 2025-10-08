@@ -16,7 +16,7 @@ const buttonVariants = cva(
         ghost: "hover:bg-muted",
         link: "text-primary underline-offset-4 hover:underline",
         gradient: "bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 shadow-md",
-        pillar: "h-auto flex-col gap-3 p-6 bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1",
+        pillar: "h-auto flex-col items-center gap-3 p-6 bg-card hover:shadow-lg transition-all duration-300 hover:-translate-y-1",
       },
       size: {
         default: "h-10 px-4 py-2",
