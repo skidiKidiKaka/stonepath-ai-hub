@@ -8,14 +8,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
 const pillars = [
+  { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
   { id: "mental-health", name: "Mental Health", icon: Brain, color: "from-purple-500 to-purple-600" },
   { id: "academics", name: "Academics", icon: BookOpen, color: "from-blue-500 to-blue-600" },
   { id: "friendships", name: "Friendships", icon: Users, color: "from-green-500 to-green-600" },
-  { id: "fitness", name: "Fitness", icon: Heart, color: "from-red-500 to-red-600" },
-  { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
-  { id: "finance", name: "Finance", icon: DollarSign, color: "from-emerald-500 to-emerald-600" },
   { id: "relationships", name: "Relationships", icon: MessageCircle, color: "from-pink-500 to-pink-600" },
   { id: "bullying", name: "Peer Support", icon: Shield, color: "from-cyan-500 to-cyan-600" },
+  { id: "fitness", name: "Fitness", icon: Heart, color: "from-red-500 to-red-600" },
+  { id: "finance", name: "Finance", icon: DollarSign, color: "from-emerald-500 to-emerald-600" },
 ];
 
 const affirmations = [
