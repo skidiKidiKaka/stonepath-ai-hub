@@ -121,7 +121,7 @@ const Dashboard = () => {
           <div className="relative min-h-[4rem] flex items-center justify-center">
             <p 
               key={currentAffirmation}
-              className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-in fade-in zoom-in duration-2000"
+              className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-in fade-in zoom-in duration-1000"
             >
               {affirmations[currentAffirmation]}
             </p>
