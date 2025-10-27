@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Task {
   id: string;
@@ -19,18 +20,30 @@ const TaskPlanner = () => {
   const [newTask, setNewTask] = useState("");
 
   useEffect(() => {
-    // Check if user is logged in
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      navigate("/auth");
-      return;
-    }
+    // Check if user is logged in with Supabase
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      
+      // Load tasks from localStorage
+      const savedTasks = localStorage.getItem("tasks");
+      if (savedTasks) {
+        setTasks(JSON.parse(savedTasks));
+      }
+    });
 
-    // Load tasks from localStorage
-    const savedTasks = localStorage.getItem("tasks");
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate]);
 
   useEffect(() => {
