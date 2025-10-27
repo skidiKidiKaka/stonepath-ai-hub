@@ -25,6 +25,20 @@ const affirmations = [
   "Believe in yourself today",
   "You are worthy of success",
   "Today is full of possibilities",
+  "Your growth journey is unique and valuable",
+  "Small steps lead to big changes",
+  "You have the strength to overcome challenges",
+  "Your voice matters and deserves to be heard",
+  "Mistakes are opportunities for learning",
+  "You are making a positive difference",
+  "Every day is a chance to start fresh",
+  "Your dreams are worth pursuing",
+  "You are exactly where you need to be",
+  "Trust the process of your journey",
+  "Your resilience is your superpower",
+  "You deserve kindness, especially from yourself",
+  "Progress, not perfection, is the goal",
+  "You are stronger than you think",
 ];
 
 const Dashboard = () => {
@@ -100,13 +114,18 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Daily Affirmation */}
-        <Card className="mb-8 p-8 text-center bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 shadow-lg">
+        <Card className="mb-8 p-8 text-center bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 shadow-lg overflow-hidden">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
             Daily Affirmation
           </h2>
-          <p className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            {affirmations[currentAffirmation]}
-          </p>
+          <div className="relative min-h-[4rem] flex items-center justify-center">
+            <p 
+              key={currentAffirmation}
+              className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-fade-in"
+            >
+              {affirmations[currentAffirmation]}
+            </p>
+          </div>
         </Card>
 
         {/* Pillars Grid */}
