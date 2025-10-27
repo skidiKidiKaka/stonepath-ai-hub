@@ -16,7 +16,7 @@ const Bullying = () => {
             Back to Dashboard
           </Button>
           <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-cyan-500 to-cyan-600 bg-clip-text text-transparent">
-            Bullying Support
+            Peer Support
           </h1>
         </div>
       </header>

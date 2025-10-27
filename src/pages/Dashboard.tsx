@@ -13,7 +13,7 @@ const pillars = [
   { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
   { id: "finance", name: "Finance", icon: DollarSign, color: "from-emerald-500 to-emerald-600" },
   { id: "relationships", name: "Relationships", icon: MessageCircle, color: "from-pink-500 to-pink-600" },
-  { id: "bullying", name: "Bullying", icon: Shield, color: "from-cyan-500 to-cyan-600" },
+  { id: "bullying", name: "Peer Support", icon: Shield, color: "from-cyan-500 to-cyan-600" },
 ];
 
 const affirmations = [
