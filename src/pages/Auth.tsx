@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -16,38 +17,65 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
 
+  useEffect(() => {
+    // Check if user is already logged in
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard");
+      }
+    });
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock login for prototype
-    setTimeout(() => {
-      if (loginEmail && loginPassword) {
-        localStorage.setItem("user", JSON.stringify({ email: loginEmail, name: "Student" }));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: loginPassword,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
         toast.success("Welcome back!");
         navigate("/dashboard");
-      } else {
-        toast.error("Please fill in all fields");
       }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to sign in");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Mock signup for prototype
-    setTimeout(() => {
-      if (signupEmail && signupPassword && signupName) {
-        localStorage.setItem("user", JSON.stringify({ email: signupEmail, name: signupName }));
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signupEmail,
+        password: signupPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: {
+            full_name: signupName,
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
         toast.success("Account created successfully!");
         navigate("/dashboard");
-      } else {
-        toast.error("Please fill in all fields");
       }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create account");
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

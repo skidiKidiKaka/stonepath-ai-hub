@@ -4,6 +4,8 @@ import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Sh
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 const pillars = [
   { id: "mental-health", name: "Mental Health", icon: Brain, color: "from-purple-500 to-purple-600" },
@@ -27,27 +29,41 @@ const affirmations = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (!userData) {
-      navigate("/auth");
-      return;
-    }
-    setUser(JSON.parse(userData));
+    // Check authentication
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setUser(session.user);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setUser(session.user);
+      }
+    });
 
     // Rotate affirmations
     const interval = setInterval(() => {
       setCurrentAffirmation((prev) => (prev + 1) % affirmations.length);
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => {
+      subscription.unsubscribe();
+      clearInterval(interval);
+    };
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     toast.success("Logged out successfully");
     navigate("/auth");
   };
@@ -67,7 +83,7 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Stone Path Project
             </h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {user.name}!</p>
+            <p className="text-sm text-muted-foreground">Welcome back, {user?.email}!</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
