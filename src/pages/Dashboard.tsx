@@ -83,7 +83,7 @@ const Dashboard = () => {
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Stone Path Project
             </h1>
-            <p className="text-sm text-muted-foreground">Welcome back, {user?.email}!</p>
+            <p className="text-sm text-muted-foreground">Welcome back, {user?.user_metadata?.full_name || user?.email}!</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => navigate("/tasks")}>
