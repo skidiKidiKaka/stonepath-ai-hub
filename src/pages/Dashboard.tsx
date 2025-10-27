@@ -68,7 +68,7 @@ const Dashboard = () => {
     // Rotate affirmations
     const interval = setInterval(() => {
       setCurrentAffirmation((prev) => (prev + 1) % affirmations.length);
-    }, 5000);
+    }, 8000);
 
     return () => {
       subscription.unsubscribe();
@@ -122,7 +122,7 @@ const Dashboard = () => {
             <p 
               key={currentAffirmation}
               className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-in fade-in zoom-in"
-              style={{ animationDuration: '1500ms' }}
+              style={{ animationDuration: '2000ms' }}
             >
               {affirmations[currentAffirmation]}
             </p>
