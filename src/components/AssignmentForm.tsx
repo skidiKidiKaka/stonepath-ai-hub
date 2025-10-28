@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface AssignmentFormProps {
   onAssignmentAdded: () => void;
@@ -22,6 +22,21 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const capitalizeFirstLetter = (value: string) => {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
+  const getTodayDateTime = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +117,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
             <Input
               id="title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(capitalizeFirstLetter(e.target.value))}
               placeholder="Assignment title"
               required
             />
@@ -113,7 +128,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
             <Input
               id="subject"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => setSubject(capitalizeFirstLetter(e.target.value))}
               placeholder="e.g., Mathematics, English"
             />
           </div>
@@ -123,7 +138,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(capitalizeFirstLetter(e.target.value))}
               placeholder="Assignment details"
               rows={3}
             />
@@ -136,22 +151,51 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
               type="datetime-local"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
+              min={getTodayDateTime()}
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="priority">Priority</Label>
-            <Select value={priority} onValueChange={(value: "low" | "medium" | "high") => setPriority(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Low</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label>Priority</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => setPriority("low")}
+                className={cn(
+                  "flex-1",
+                  priority === "low" 
+                    ? "bg-green-500 hover:bg-green-600 text-white" 
+                    : "bg-green-100 hover:bg-green-200 text-green-700"
+                )}
+              >
+                Low
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setPriority("medium")}
+                className={cn(
+                  "flex-1",
+                  priority === "medium" 
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-white" 
+                    : "bg-yellow-100 hover:bg-yellow-200 text-yellow-700"
+                )}
+              >
+                Medium
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setPriority("high")}
+                className={cn(
+                  "flex-1",
+                  priority === "high" 
+                    ? "bg-red-500 hover:bg-red-600 text-white" 
+                    : "bg-red-100 hover:bg-red-200 text-red-700"
+                )}
+              >
+                High
+              </Button>
+            </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
