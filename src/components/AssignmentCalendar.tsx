@@ -39,6 +39,16 @@ export const AssignmentCalendar = ({ assignments }: AssignmentCalendarProps) => 
     return assignments.map((assignment) => new Date(assignment.due_date));
   };
 
+  const getUpcomingAssignments = () => {
+    const now = new Date();
+    return assignments
+      .filter((assignment) => new Date(assignment.due_date) >= now)
+      .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .slice(0, 5);
+  };
+
+  const upcomingAssignments = getUpcomingAssignments();
+
   const priorityColors = {
     high: "destructive",
     medium: "default",
@@ -54,48 +64,78 @@ export const AssignmentCalendar = ({ assignments }: AssignmentCalendarProps) => 
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col gap-4">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            className="rounded-md border pointer-events-auto"
-            modifiers={{
-              hasAssignment: getDatesWithAssignments(),
-            }}
-            modifiersClassNames={{
-              hasAssignment: "bg-blue-500/10 font-bold",
-            }}
-          />
-          
-          {selectedDate && (
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm">
-                Assignments on {selectedDate.toLocaleDateString()}
-              </h3>
-              {assignmentsOnSelectedDate.length > 0 ? (
-                <div className="space-y-2">
-                  {assignmentsOnSelectedDate.map((assignment) => (
-                    <div key={assignment.id} className="p-2 bg-muted rounded-lg text-sm">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="font-medium">{assignment.title}</div>
-                          {assignment.subject && (
-                            <div className="text-xs text-muted-foreground">{assignment.subject}</div>
-                          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border pointer-events-auto"
+              modifiers={{
+                hasAssignment: getDatesWithAssignments(),
+              }}
+              modifiersClassNames={{
+                hasAssignment: "bg-blue-500/10 font-bold",
+              }}
+            />
+            
+            {selectedDate && (
+              <div className="space-y-2">
+                <h3 className="font-semibold text-sm">
+                  Assignments on {selectedDate.toLocaleDateString()}
+                </h3>
+                {assignmentsOnSelectedDate.length > 0 ? (
+                  <div className="space-y-2">
+                    {assignmentsOnSelectedDate.map((assignment) => (
+                      <div key={assignment.id} className="p-2 bg-muted rounded-lg text-sm">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="font-medium">{assignment.title}</div>
+                            {assignment.subject && (
+                              <div className="text-xs text-muted-foreground">{assignment.subject}</div>
+                            )}
+                          </div>
+                          <Badge variant={priorityColors[assignment.priority as keyof typeof priorityColors]} className="text-xs">
+                            {assignment.priority}
+                          </Badge>
                         </div>
-                        <Badge variant={priorityColors[assignment.priority as keyof typeof priorityColors]} className="text-xs">
-                          {assignment.priority}
-                        </Badge>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No assignments due on this date</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <h3 className="font-semibold text-sm">Upcoming Assignments</h3>
+            {upcomingAssignments.length > 0 ? (
+              <div className="space-y-2">
+                {upcomingAssignments.map((assignment) => (
+                  <div key={assignment.id} className="p-3 bg-muted rounded-lg">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{assignment.title}</div>
+                        {assignment.subject && (
+                          <div className="text-xs text-muted-foreground">{assignment.subject}</div>
+                        )}
+                      </div>
+                      <Badge variant={priorityColors[assignment.priority as keyof typeof priorityColors]} className="text-xs">
+                        {assignment.priority}
+                      </Badge>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No assignments due on this date</p>
-              )}
-            </div>
-          )}
+                    <div className="text-xs text-muted-foreground">
+                      Due: {new Date(assignment.due_date).toLocaleDateString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No upcoming assignments</p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
