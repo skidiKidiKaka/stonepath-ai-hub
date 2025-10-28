@@ -46,9 +46,9 @@ const SortableTaskItem = ({ task, onToggle, onDelete }: { task: Task; onToggle: 
   };
 
   const priorityColors = {
-    high: "text-destructive",
-    medium: "text-orange-500",
-    low: "text-blue-500",
+    high: "text-red-600",
+    medium: "text-yellow-600",
+    low: "text-green-600",
   };
 
   return (
@@ -106,12 +106,18 @@ const TaskPlanner = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sortBy, setSortBy] = useState<"none" | "priority" | "date">("none");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   
   // Form states
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskNotes, setNewTaskNotes] = useState("");
   const [newTaskDate, setNewTaskDate] = useState<Date | undefined>();
   const [newTaskPriority, setNewTaskPriority] = useState<"low" | "medium" | "high">("medium");
+
+  const capitalizeFirstLetter = (text: string) => {
+    if (!text) return text;
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -311,7 +317,14 @@ const TaskPlanner = () => {
                     id="title"
                     placeholder="Enter task title..."
                     value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length === 1) {
+                        setNewTaskTitle(capitalizeFirstLetter(value));
+                      } else {
+                        setNewTaskTitle(value);
+                      }
+                    }}
                     required
                   />
                 </div>
@@ -322,14 +335,21 @@ const TaskPlanner = () => {
                     id="notes"
                     placeholder="Additional details or notes..."
                     value={newTaskNotes}
-                    onChange={(e) => setNewTaskNotes(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length === 1) {
+                        setNewTaskNotes(capitalizeFirstLetter(value));
+                      } else {
+                        setNewTaskNotes(value);
+                      }
+                    }}
                     rows={3}
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label className="capitalize">Due Date</Label>
-                  <Popover>
+                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -346,7 +366,10 @@ const TaskPlanner = () => {
                       <Calendar
                         mode="single"
                         selected={newTaskDate}
-                        onSelect={setNewTaskDate}
+                        onSelect={(date) => {
+                          setNewTaskDate(date);
+                          setIsCalendarOpen(false);
+                        }}
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         initialFocus
                         className="pointer-events-auto"
