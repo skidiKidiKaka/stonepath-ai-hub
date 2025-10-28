@@ -3,7 +3,7 @@ import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -205,189 +205,178 @@ const Career = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="quiz">Personality Quiz</TabsTrigger>
-          </TabsList>
+      <main className="container mx-auto px-4 py-8 space-y-8">
+        <div className="grid gap-6 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-orange-500" />
+                <CardTitle>Career Goals</CardTitle>
+              </div>
+              <CardDescription>Track your professional development</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>Resume Update</span>
+                    <span>75%</span>
+                  </div>
+                  <Progress value={75} className="h-2" />
+                </div>
+                <div>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>LinkedIn Profile</span>
+                    <span>60%</span>
+                  </div>
+                  <Progress value={60} className="h-2" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Target className="w-5 h-5 text-orange-500" />
-                    <CardTitle>Career Goals</CardTitle>
-                  </div>
-                  <CardDescription>Track your professional development</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>Resume Update</span>
-                        <span>75%</span>
-                      </div>
-                      <Progress value={75} className="h-2" />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span>LinkedIn Profile</span>
-                        <span>60%</span>
-                      </div>
-                      <Progress value={60} className="h-2" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-orange-500" />
+                <CardTitle>Skills Development</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm">Communication</span>
+                  <span className="font-semibold">Advanced</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Leadership</span>
+                  <span className="font-semibold">Intermediate</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Technical Skills</span>
+                  <span className="font-semibold">Intermediate</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-orange-500" />
-                    <CardTitle>Skills Development</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm">Communication</span>
-                      <span className="font-semibold">Advanced</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Leadership</span>
-                      <span className="font-semibold">Intermediate</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">Technical Skills</span>
-                      <span className="font-semibold">Intermediate</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-orange-500" />
-                    <CardTitle>Resources</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full justify-start">
-                      Resume Templates
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      Interview Prep Guide
-                    </Button>
-                    <Button variant="outline" className="w-full justify-start">
-                      Career Exploration Tools
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-5 h-5 text-orange-500" />
-                    <CardTitle>Career Tips</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2 text-sm">
-                    <li>• Network with professionals in your field</li>
-                    <li>• Seek internship opportunities</li>
-                    <li>• Develop both hard and soft skills</li>
-                    <li>• Stay updated with industry trends</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="quiz" className="space-y-6">
-            {!quizCompleted ? (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-orange-500" />
-                    <CardTitle>Career Personality Quiz</CardTitle>
-                  </div>
-                  <CardDescription>
-                    Question {currentQuestion + 1} of {quizQuestions.length}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">{quizQuestions[currentQuestion].question}</h3>
-                    <Progress value={(currentQuestion / quizQuestions.length) * 100} className="h-2" />
-                  </div>
-                  <div className="grid gap-3">
-                    {quizQuestions[currentQuestion].options.map((option, index) => (
-                      <Button
-                        key={index}
-                        variant="outline"
-                        className="w-full justify-start text-left h-auto py-4"
-                        onClick={() => handleAnswer(option)}
-                      >
-                        {option}
-                      </Button>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                <Card className="border-orange-500/20">
-                  <CardHeader>
-                    <div className="flex items-center gap-2">
-                      <Award className="w-6 h-6 text-orange-500" />
-                      <CardTitle className="text-2xl">Your Career Personality: {result?.type}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="p-4 bg-orange-500/10 rounded-lg">
-                      <p className="text-sm italic">"{result?.quote}"</p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold mb-2">Personality Feedback</h4>
-                      <p className="text-muted-foreground">{result?.feedback}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Recommended Career Paths</CardTitle>
-                    <CardDescription>Based on your personality profile</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {result?.careers.map((career, index) => (
-                        <div
-                          key={index}
-                          className="p-4 border rounded-lg bg-card hover:bg-muted transition-colors"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Briefcase className="w-4 h-4 text-orange-500" />
-                            <span className="font-medium">{career}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Button onClick={resetQuiz} className="w-full">
-                  Take Quiz Again
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-orange-500" />
+                <CardTitle>Resources</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full justify-start">
+                  Resume Templates
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  Interview Prep Guide
+                </Button>
+                <Button variant="outline" className="w-full justify-start">
+                  Career Exploration Tools
                 </Button>
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-orange-500" />
+                <CardTitle>Career Tips</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm">
+                <li>• Network with professionals in your field</li>
+                <li>• Seek internship opportunities</li>
+                <li>• Develop both hard and soft skills</li>
+                <li>• Stay updated with industry trends</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+
+        {!quizCompleted ? (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-orange-500" />
+                <CardTitle>Career Personality Quiz</CardTitle>
+              </div>
+              <CardDescription>
+                Question {currentQuestion + 1} of {quizQuestions.length}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">{quizQuestions[currentQuestion].question}</h3>
+                <Progress value={(currentQuestion / quizQuestions.length) * 100} className="h-2" />
+              </div>
+              <div className="grid gap-3">
+                {quizQuestions[currentQuestion].options.map((option, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-4"
+                    onClick={() => handleAnswer(option)}
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-6">
+            <Card className="border-orange-500/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Award className="w-6 h-6 text-orange-500" />
+                  <CardTitle className="text-2xl">Your Career Personality: {result?.type}</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="p-4 bg-orange-500/10 rounded-lg">
+                  <p className="text-sm italic">"{result?.quote}"</p>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">Personality Feedback</h4>
+                  <p className="text-muted-foreground">{result?.feedback}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recommended Career Paths</CardTitle>
+                <CardDescription>Based on your personality profile</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {result?.careers.map((career, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border rounded-lg bg-card hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-orange-500" />
+                        <span className="font-medium">{career}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Button onClick={resetQuiz} className="w-full">
+              Take Quiz Again
+            </Button>
+          </div>
+        )}
       </main>
     </div>
   );
