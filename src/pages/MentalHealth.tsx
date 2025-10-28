@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 type Mood = "very_sad" | "sad" | "neutral" | "happy" | "very_happy" | null;
@@ -76,51 +75,16 @@ const MentalHealth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedMood, setSelectedMood] = useState<Mood>(null);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
-  const handleMoodSelection = async (mood: Mood) => {
+  const handleMoodSelection = (mood: Mood) => {
     setSelectedMood(mood);
     
     if (!mood) return;
     
-    const moodInfo = moodData[mood];
-    
     toast({
       title: "Mood Recorded",
-      description: "Generating personalized audio message...",
+      description: "Your personalized tips are ready!",
     });
-
-    setIsPlayingAudio(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('mood-tts', {
-        body: { text: moodInfo.ttsMessage, voice: 'nova' }
-      });
-
-      if (error) throw error;
-
-      if (data?.audioContent) {
-        const audio = new Audio(`data:audio/mp3;base64,${data.audioContent}`);
-        audio.onended = () => setIsPlayingAudio(false);
-        audio.onerror = () => {
-          setIsPlayingAudio(false);
-          toast({
-            title: "Audio Error",
-            description: "Failed to play audio message",
-            variant: "destructive",
-          });
-        };
-        await audio.play();
-      }
-    } catch (error) {
-      console.error('Error playing mood audio:', error);
-      setIsPlayingAudio(false);
-      toast({
-        title: "Error",
-        description: "Failed to generate audio message",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -156,7 +120,6 @@ const MentalHealth = () => {
                       variant={selectedMood === mood ? "default" : "outline"} 
                       className="flex-1 text-2xl"
                       onClick={() => handleMoodSelection(mood)}
-                      disabled={isPlayingAudio}
                     >
                       {moodData[mood!].emoji}
                     </Button>
