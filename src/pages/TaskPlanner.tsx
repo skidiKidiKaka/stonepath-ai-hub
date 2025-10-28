@@ -306,7 +306,7 @@ const TaskPlanner = () => {
               </DialogHeader>
               <form onSubmit={handleAddTask} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Task Title *</Label>
+                  <Label htmlFor="title" className="capitalize">Task Title *</Label>
                   <Input
                     id="title"
                     placeholder="Enter task title..."
@@ -317,7 +317,7 @@ const TaskPlanner = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Task Notes</Label>
+                  <Label htmlFor="notes" className="capitalize">Task Notes</Label>
                   <Textarea
                     id="notes"
                     placeholder="Additional details or notes..."
@@ -328,7 +328,7 @@ const TaskPlanner = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Due Date</Label>
+                  <Label className="capitalize">Due Date</Label>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -347,6 +347,7 @@ const TaskPlanner = () => {
                         mode="single"
                         selected={newTaskDate}
                         onSelect={setNewTaskDate}
+                        disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                         initialFocus
                         className="pointer-events-auto"
                       />
@@ -355,17 +356,42 @@ const TaskPlanner = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Priority</Label>
-                  <Select value={newTaskPriority} onValueChange={(value: "low" | "medium" | "high") => setNewTaskPriority(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="capitalize">Priority</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={newTaskPriority === "low" ? "default" : "outline"}
+                      className={cn(
+                        "flex-1",
+                        newTaskPriority === "low" && "bg-green-600 hover:bg-green-700 text-white"
+                      )}
+                      onClick={() => setNewTaskPriority("low")}
+                    >
+                      Low
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={newTaskPriority === "medium" ? "default" : "outline"}
+                      className={cn(
+                        "flex-1",
+                        newTaskPriority === "medium" && "bg-yellow-600 hover:bg-yellow-700 text-white"
+                      )}
+                      onClick={() => setNewTaskPriority("medium")}
+                    >
+                      Medium
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={newTaskPriority === "high" ? "default" : "outline"}
+                      className={cn(
+                        "flex-1",
+                        newTaskPriority === "high" && "bg-red-600 hover:bg-red-700 text-white"
+                      )}
+                      onClick={() => setNewTaskPriority("high")}
+                    >
+                      High
+                    </Button>
+                  </div>
                 </div>
 
                 <Button type="submit" className="w-full" variant="gradient">
@@ -378,7 +404,7 @@ const TaskPlanner = () => {
           <div className="flex-1" />
 
           <div className="flex items-center gap-2">
-            <Label className="text-sm">Sort by:</Label>
+            <Label className="text-sm capitalize">Sort by:</Label>
             <Select value={sortBy} onValueChange={(value: "none" | "priority" | "date") => setSortBy(value)}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue />
