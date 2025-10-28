@@ -1,11 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Brain, Heart, Smile, Moon, ChevronDown } from "lucide-react";
+import { ArrowLeft, Brain, Heart, Smile, Moon, ChevronDown, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import meditationAudio from "@/assets/meditation-music.mp3";
 
 type Mood = "very_sad" | "sad" | "neutral" | "happy" | "very_happy" | null;
 
@@ -76,6 +77,8 @@ const MentalHealth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedMood, setSelectedMood] = useState<Mood>(null);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleMoodSelection = (mood: Mood) => {
     setSelectedMood(mood);
@@ -86,6 +89,17 @@ const MentalHealth = () => {
       title: "Mood Recorded",
       description: "Your personalized tips are ready!",
     });
+  };
+
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlayingAudio) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlayingAudio(!isPlayingAudio);
   };
 
   return (
@@ -199,7 +213,7 @@ const MentalHealth = () => {
                       <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                     </Button>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-2 p-3 bg-purple-500/5 rounded-lg text-sm">
+                  <CollapsibleContent className="mt-2 p-3 bg-purple-500/5 rounded-lg text-sm space-y-3">
                     <ol className="list-decimal list-inside space-y-1">
                       <li>Find a quiet, comfortable spot</li>
                       <li>Close your eyes and breathe naturally</li>
@@ -207,6 +221,22 @@ const MentalHealth = () => {
                       <li>When your mind wanders, gently return focus</li>
                       <li>Continue for 5 minutes</li>
                     </ol>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={toggleAudio}
+                        className="gap-2"
+                      >
+                        {isPlayingAudio ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        {isPlayingAudio ? "Pause" : "Play"} Meditation Music
+                      </Button>
+                    </div>
+                    <audio 
+                      ref={audioRef} 
+                      src={meditationAudio}
+                      onEnded={() => setIsPlayingAudio(false)}
+                    />
                   </CollapsibleContent>
                 </Collapsible>
 
