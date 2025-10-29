@@ -53,6 +53,33 @@ export type Database = {
         }
         Relationships: []
       }
+      bullying_reports: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          incident_type: string
+          is_urgent: boolean
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          incident_type: string
+          is_urgent?: boolean
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          incident_type?: string
+          is_urgent?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
       career_quiz_results: {
         Row: {
           answers: Json
@@ -265,6 +292,33 @@ export type Database = {
           max_members?: number | null
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      mentor_requests: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          request_type: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          request_type: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          request_type?: string
+          status?: string
+          user_id?: string | null
         }
         Relationships: []
       }

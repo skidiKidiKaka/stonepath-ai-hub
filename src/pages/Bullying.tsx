@@ -1,11 +1,145 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, AlertCircle, Phone, Heart } from "lucide-react";
+import { ArrowLeft, Shield, AlertCircle, Phone, Heart, Send, UserPlus, Sparkles, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const reportSchema = z.object({
+  incident_type: z.string().min(1, "Please select an incident type"),
+  description: z.string().trim().min(20, "Description must be at least 20 characters").max(1000, "Description must be less than 1000 characters"),
+});
+
+const mentorRequestSchema = z.object({
+  request_type: z.string().min(1, "Please select a request type"),
+  description: z.string().trim().min(10, "Description must be at least 10 characters").max(500, "Description must be less than 500 characters"),
+});
 
 const Bullying = () => {
   const navigate = useNavigate();
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Report form state
+  const [incidentType, setIncidentType] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [isUrgent, setIsUrgent] = useState(false);
+
+  // Mentor request form state
+  const [mentorType, setMentorType] = useState("");
+  const [mentorDescription, setMentorDescription] = useState("");
+
+  // Daily kindness challenges
+  const kindnessChallenges = [
+    "Compliment three people today",
+    "Help someone with their homework",
+    "Share your lunch with someone",
+    "Stand up for someone being treated unfairly",
+    "Send a kind message to someone who looks sad",
+    "Include someone who's sitting alone",
+    "Thank a teacher or staff member",
+  ];
+
+  const challengeOfTheDay = useMemo(() => {
+    const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+    return kindnessChallenges[dayOfYear % kindnessChallenges.length];
+  }, []);
+
+  const handleSubmitReport = async () => {
+    try {
+      reportSchema.parse({ incident_type: incidentType, description: reportDescription });
+      
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('bullying_reports')
+        .insert([{
+          incident_type: incidentType,
+          description: reportDescription.trim(),
+          is_urgent: isUrgent,
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Report Submitted",
+        description: "Your anonymous report has been submitted. A counselor will review it shortly.",
+      });
+      
+      setIsReportOpen(false);
+      setIncidentType("");
+      setReportDescription("");
+      setIsUrgent(false);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Invalid Report",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit report. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmitMentorRequest = async () => {
+    try {
+      mentorRequestSchema.parse({ request_type: mentorType, description: mentorDescription });
+      
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('mentor_requests')
+        .insert([{
+          user_id: user?.id || null,
+          request_type: mentorType,
+          description: mentorDescription.trim(),
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted",
+        description: "Your mentor request has been submitted. Someone will reach out to you soon.",
+      });
+      
+      setIsMentorOpen(false);
+      setMentorType("");
+      setMentorDescription("");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Invalid Request",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit request. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-cyan-500/5 to-background">
@@ -80,12 +214,134 @@ const Bullying = () => {
                 <Button variant="outline" className="w-full justify-start">
                   Talk to School Counselor
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Report Incident
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Support Resources
-                </Button>
+                
+                <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Flag className="w-4 h-4 mr-2" />
+                      Report Incident Anonymously
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Report Bullying Anonymously</DialogTitle>
+                      <DialogDescription>
+                        Your report is completely anonymous. We're here to help.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Type of Incident</Label>
+                        <Select value={incidentType} onValueChange={setIncidentType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select incident type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="physical">Physical Bullying</SelectItem>
+                            <SelectItem value="verbal">Verbal Bullying</SelectItem>
+                            <SelectItem value="social">Social Bullying</SelectItem>
+                            <SelectItem value="cyberbullying">Cyberbullying</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Description (20-1000 characters)</Label>
+                        <Textarea
+                          placeholder="Describe what happened... When, where, who was involved, etc."
+                          value={reportDescription}
+                          onChange={(e) => setReportDescription(e.target.value)}
+                          className="min-h-[120px]"
+                          maxLength={1000}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {reportDescription.length}/1000 characters
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox 
+                          id="urgent" 
+                          checked={isUrgent}
+                          onCheckedChange={(checked) => setIsUrgent(checked as boolean)}
+                        />
+                        <label
+                          htmlFor="urgent"
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          This is urgent and needs immediate attention
+                        </label>
+                      </div>
+
+                      <Button 
+                        onClick={handleSubmitReport}
+                        disabled={isSubmitting || !incidentType || reportDescription.length < 20}
+                        className="w-full"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit Report
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isMentorOpen} onOpenChange={setIsMentorOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Request a Mentor
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Request a Peer Mentor</DialogTitle>
+                      <DialogDescription>
+                        Connect with someone who can support you through difficult times.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>What do you need help with?</Label>
+                        <Select value={mentorType} onValueChange={setMentorType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select support type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bullying">Dealing with Bullying</SelectItem>
+                            <SelectItem value="friendship">Friendship Issues</SelectItem>
+                            <SelectItem value="confidence">Building Confidence</SelectItem>
+                            <SelectItem value="stress">Managing Stress</SelectItem>
+                            <SelectItem value="other">Other Support</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Tell us more (10-500 characters)</Label>
+                        <Textarea
+                          placeholder="Share what you're going through and how a mentor could help..."
+                          value={mentorDescription}
+                          onChange={(e) => setMentorDescription(e.target.value)}
+                          className="min-h-[100px]"
+                          maxLength={500}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {mentorDescription.length}/500 characters
+                        </span>
+                      </div>
+
+                      <Button 
+                        onClick={handleSubmitMentorRequest}
+                        disabled={isSubmitting || !mentorType || mentorDescription.length < 10}
+                        className="w-full"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit Request
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CardContent>
           </Card>
@@ -107,6 +363,21 @@ const Bullying = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Daily Kindness Challenge */}
+        <Card className="mt-6 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-200 dark:border-cyan-800">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-cyan-500" />
+              <CardTitle>Kindness Challenge of the Day</CardTitle>
+            </div>
+            <CardDescription>Small acts of kindness can make a big difference</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg font-medium mb-4">Today's Challenge:</p>
+            <p className="text-xl italic">{challengeOfTheDay}</p>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
