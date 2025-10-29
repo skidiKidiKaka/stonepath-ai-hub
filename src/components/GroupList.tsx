@@ -36,6 +36,11 @@ export const GroupList = ({ onGroupSelect }: GroupListProps) => {
   const [isPublic, setIsPublic] = useState(true);
   const { toast } = useToast();
 
+  const capitalizeFirstLetter = (value: string) => {
+    if (!value) return value;
+    return value.charAt(0).toUpperCase() + value.slice(1);
+  };
+
   const fetchGroups = async () => {
     const { data: groupsData, error: groupsError } = await supabase
       .from("groups" as any)
@@ -206,7 +211,7 @@ export const GroupList = ({ onGroupSelect }: GroupListProps) => {
                 <Input
                   id="name"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => setName(capitalizeFirstLetter(e.target.value))}
                   placeholder="Enter group name"
                   required
                 />
@@ -217,7 +222,7 @@ export const GroupList = ({ onGroupSelect }: GroupListProps) => {
                 <Textarea
                   id="description"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => setDescription(capitalizeFirstLetter(e.target.value))}
                   placeholder="What is this group about?"
                   rows={3}
                 />
