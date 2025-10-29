@@ -24,6 +24,10 @@ const Index = () => {
             <span className="text-sm font-medium">Your Personal Growth Platform</span>
           </div>
           
+          <h2 className="text-3xl md:text-4xl font-semibold text-foreground mb-4">
+            Welcome to Stone Path
+          </h2>
+          
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
             <span className="bg-gradient-to-r from-primary via-secondary to-primary bg-clip-text text-transparent">
               Stone Path Project
