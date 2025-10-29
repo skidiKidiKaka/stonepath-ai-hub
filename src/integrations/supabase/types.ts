@@ -292,6 +292,30 @@ export type Database = {
         }
         Relationships: []
       }
+      relationship_questions: {
+        Row: {
+          answer: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          question: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          question: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          question?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

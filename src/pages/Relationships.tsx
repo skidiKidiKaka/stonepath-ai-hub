@@ -1,12 +1,40 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Heart, Users, Sparkles, Lightbulb, HelpCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Heart, Users, Sparkles, Lightbulb, HelpCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useMemo } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { z } from "zod";
+
+const questionSchema = z.object({
+  question: z.string()
+    .trim()
+    .min(10, "Question must be at least 10 characters")
+    .max(500, "Question must be less than 500 characters")
+});
 
 const Relationships = () => {
   const navigate = useNavigate();
+  const [newQuestion, setNewQuestion] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch user-submitted questions
+  const { data: userQuestions = [], refetch } = useQuery({
+    queryKey: ['relationship-questions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('relationship_questions')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   const healthyTips = [
     "Practice active listening - put away distractions and truly focus on what your partner is saying.",
@@ -45,6 +73,55 @@ const Relationships = () => {
       answer: "Consider ending a relationship if there's abuse (physical, emotional, or verbal), constant disrespect, lack of trust, or if you feel consistently unhappy and efforts to improve haven't worked. Your safety and wellbeing come first."
     },
   ];
+
+  // Combine hardcoded and user-submitted questions
+  const allQuestions = [
+    ...qAndAs,
+    ...userQuestions.map(q => ({
+      question: q.question,
+      answer: q.answer || "This question is awaiting an answer from our team."
+    }))
+  ];
+
+  const handleSubmitQuestion = async () => {
+    if (!newQuestion.trim()) return;
+
+    try {
+      // Validate input
+      questionSchema.parse({ question: newQuestion });
+      
+      setIsSubmitting(true);
+      const { error } = await supabase
+        .from('relationship_questions')
+        .insert([{ question: newQuestion.trim() }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Question Submitted",
+        description: "Your anonymous question has been submitted and will be reviewed.",
+      });
+      
+      setNewQuestion("");
+      refetch();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Invalid Question",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit question. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-pink-500/5 to-background">
@@ -167,9 +244,35 @@ const Relationships = () => {
               </div>
               <CardDescription>Common questions about relationships - you're not alone</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Submit Question Form */}
+              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                <h4 className="font-medium">Ask Your Question Anonymously</h4>
+                <Textarea
+                  placeholder="Type your relationship question here... (10-500 characters)"
+                  value={newQuestion}
+                  onChange={(e) => setNewQuestion(e.target.value)}
+                  className="min-h-[100px]"
+                  maxLength={500}
+                />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {newQuestion.length}/500 characters
+                  </span>
+                  <Button 
+                    onClick={handleSubmitQuestion}
+                    disabled={isSubmitting || newQuestion.trim().length < 10}
+                    size="sm"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    Submit Question
+                  </Button>
+                </div>
+              </div>
+
+              {/* Questions Accordion */}
               <Accordion type="single" collapsible className="w-full">
-                {qAndAs.map((qa, index) => (
+                {allQuestions.map((qa, index) => (
                   <AccordionItem key={index} value={`item-${index}`}>
                     <AccordionTrigger className="text-left">
                       {qa.question}
