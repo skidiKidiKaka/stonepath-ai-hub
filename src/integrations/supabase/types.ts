@@ -178,6 +178,33 @@ export type Database = {
           },
         ]
       }
+      fitness_streaks: {
+        Row: {
+          current_streak: number
+          id: string
+          last_workout_date: string | null
+          longest_streak: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          id?: string
+          last_workout_date?: string | null
+          longest_streak?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          id?: string
+          last_workout_date?: string | null
+          longest_streak?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_events: {
         Row: {
           created_at: string
@@ -400,6 +427,39 @@ export type Database = {
           id?: string
           is_approved?: boolean
           question?: string
+        }
+        Relationships: []
+      }
+      workout_logs: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          intensity: string
+          notes: string | null
+          user_id: string
+          workout_date: string
+          workout_type: string
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          intensity: string
+          notes?: string | null
+          user_id: string
+          workout_date?: string
+          workout_type: string
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          intensity?: string
+          notes?: string | null
+          user_id?: string
+          workout_date?: string
+          workout_type?: string
         }
         Relationships: []
       }
