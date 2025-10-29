@@ -396,6 +396,54 @@ const Finance = () => {
     }
   };
 
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({ title: "Deleted", description: "Transaction removed successfully." });
+      refetchTransactions();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete transaction.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteChore = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('chores')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({ title: "Deleted", description: "Chore removed successfully." });
+      refetchChores();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete chore.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteGoal = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('savings_goals')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({ title: "Deleted", description: "Savings goal removed successfully." });
+      refetchGoals();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to delete goal.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -580,14 +628,24 @@ const Finance = () => {
                   <Card key={trans.id}>
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1">
                           <div className="font-semibold">{trans.description}</div>
                           <div className="text-sm text-muted-foreground">
                             {format(new Date(trans.transaction_date), 'MMM d, yyyy')}
                           </div>
                         </div>
-                        <div className={`text-lg font-bold ${trans.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount as any).toFixed(2)}
+                        <div className="flex items-center gap-3">
+                          <div className={`text-lg font-bold ${trans.type === 'income' ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {trans.type === 'income' ? '+' : '-'}${parseFloat(trans.amount as any).toFixed(2)}
+                          </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteTransaction(trans.id)}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -694,16 +752,26 @@ const Finance = () => {
                   <Card key={chore.id}>
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start mb-2">
-                        <div>
+                        <div className="flex-1">
                           <div className="font-semibold">{chore.title}</div>
                           {chore.description && (
                             <div className="text-sm text-muted-foreground">{chore.description}</div>
                           )}
                         </div>
-                        <Badge variant="secondary">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {chore.frequency}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {chore.frequency}
+                          </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => handleDeleteChore(chore.id)}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       <div className="flex justify-between items-center mt-4">
                         <div className="text-lg font-bold text-emerald-600">
@@ -787,7 +855,7 @@ const Finance = () => {
                     <Card key={goal.id}>
                       <CardHeader>
                         <div className="flex justify-between items-start">
-                          <div>
+                          <div className="flex-1">
                             <CardTitle className="text-lg">{goal.goal_name}</CardTitle>
                             {goal.target_date && (
                               <CardDescription>
@@ -795,7 +863,17 @@ const Finance = () => {
                               </CardDescription>
                             )}
                           </div>
-                          <PiggyBank className="w-5 h-5 text-emerald-500" />
+                          <div className="flex items-center gap-2">
+                            <PiggyBank className="w-5 h-5 text-emerald-500" />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => handleDeleteGoal(goal.id)}
+                              className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4">
