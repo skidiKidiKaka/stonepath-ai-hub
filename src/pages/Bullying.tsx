@@ -23,10 +23,18 @@ const mentorRequestSchema = z.object({
   description: z.string().trim().min(10, "Description must be at least 10 characters").max(500, "Description must be less than 500 characters"),
 });
 
+const counselorRequestSchema = z.object({
+  urgency_level: z.string().min(1, "Please select urgency level"),
+  preferred_contact: z.string().min(1, "Please select preferred contact method"),
+  reason: z.string().min(1, "Please select a reason"),
+  description: z.string().trim().min(10, "Description must be at least 10 characters").max(1000, "Description must be less than 1000 characters"),
+});
+
 const Bullying = () => {
   const navigate = useNavigate();
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [isMentorOpen, setIsMentorOpen] = useState(false);
+  const [isCounselorOpen, setIsCounselorOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Report form state
@@ -37,6 +45,12 @@ const Bullying = () => {
   // Mentor request form state
   const [mentorType, setMentorType] = useState("");
   const [mentorDescription, setMentorDescription] = useState("");
+
+  // Counselor request form state
+  const [urgencyLevel, setUrgencyLevel] = useState("");
+  const [preferredContact, setPreferredContact] = useState("");
+  const [counselorReason, setCounselorReason] = useState("");
+  const [counselorDescription, setCounselorDescription] = useState("");
 
   // Daily kindness challenges
   const kindnessChallenges = [
@@ -141,6 +155,61 @@ const Bullying = () => {
     }
   };
 
+  const handleSubmitCounselorRequest = async () => {
+    try {
+      counselorRequestSchema.parse({ 
+        urgency_level: urgencyLevel, 
+        preferred_contact: preferredContact,
+        reason: counselorReason,
+        description: counselorDescription 
+      });
+      
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('counselor_requests')
+        .insert([{
+          user_id: user?.id || null,
+          urgency_level: urgencyLevel,
+          preferred_contact: preferredContact,
+          reason: counselorReason,
+          description: counselorDescription.trim(),
+        }]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Request Submitted",
+        description: urgencyLevel === "urgent" 
+          ? "Your urgent request has been submitted. A counselor will contact you as soon as possible."
+          : "Your counseling request has been submitted. A counselor will reach out within 24-48 hours.",
+      });
+      
+      setIsCounselorOpen(false);
+      setUrgencyLevel("");
+      setPreferredContact("");
+      setCounselorReason("");
+      setCounselorDescription("");
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast({
+          title: "Invalid Request",
+          description: error.errors[0].message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to submit request. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-cyan-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -211,9 +280,92 @@ const Bullying = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  Talk to School Counselor
-                </Button>
+                <Dialog open={isCounselorOpen} onOpenChange={setIsCounselorOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start">
+                      <Phone className="w-4 h-4 mr-2" />
+                      Talk to School Counselor
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Request Counseling Session</DialogTitle>
+                      <DialogDescription>
+                        A school counselor will reach out to schedule a confidential session.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>How urgent is this?</Label>
+                        <Select value={urgencyLevel} onValueChange={setUrgencyLevel}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select urgency level" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="urgent">Urgent - Need help ASAP</SelectItem>
+                            <SelectItem value="soon">Soon - Within a few days</SelectItem>
+                            <SelectItem value="routine">Routine - Within a week</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Preferred Contact Method</Label>
+                        <Select value={preferredContact} onValueChange={setPreferredContact}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="How should we reach you?" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="in-person">In-Person Meeting</SelectItem>
+                            <SelectItem value="phone">Phone Call</SelectItem>
+                            <SelectItem value="email">Email</SelectItem>
+                            <SelectItem value="any">Any Method</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>What do you need help with?</Label>
+                        <Select value={counselorReason} onValueChange={setCounselorReason}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a reason" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="bullying">Bullying or Harassment</SelectItem>
+                            <SelectItem value="mental-health">Mental Health Support</SelectItem>
+                            <SelectItem value="academic">Academic Stress</SelectItem>
+                            <SelectItem value="family">Family Issues</SelectItem>
+                            <SelectItem value="peer">Peer Relationships</SelectItem>
+                            <SelectItem value="other">Other Concerns</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label>Additional Details (10-1000 characters)</Label>
+                        <Textarea
+                          placeholder="Share more about what you're experiencing and how we can help..."
+                          value={counselorDescription}
+                          onChange={(e) => setCounselorDescription(e.target.value)}
+                          className="min-h-[120px]"
+                          maxLength={1000}
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          {counselorDescription.length}/1000 characters
+                        </span>
+                      </div>
+
+                      <Button 
+                        onClick={handleSubmitCounselorRequest}
+                        disabled={isSubmitting || !urgencyLevel || !preferredContact || !counselorReason || counselorDescription.length < 10}
+                        className="w-full"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        Submit Request
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
                 
                 <Dialog open={isReportOpen} onOpenChange={setIsReportOpen}>
                   <DialogTrigger asChild>

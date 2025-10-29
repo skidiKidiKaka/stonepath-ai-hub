@@ -113,6 +113,39 @@ export type Database = {
         }
         Relationships: []
       }
+      counselor_requests: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          preferred_contact: string
+          reason: string
+          status: string
+          urgency_level: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          preferred_contact: string
+          reason: string
+          status?: string
+          urgency_level: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          preferred_contact?: string
+          reason?: string
+          status?: string
+          urgency_level?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       event_rsvps: {
         Row: {
           created_at: string
