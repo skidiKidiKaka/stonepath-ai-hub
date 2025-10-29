@@ -16,6 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { format } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts";
 
 const transactionSchema = z.object({
   amount: z.number().positive("Amount must be positive").max(999999, "Amount too large"),
@@ -163,6 +164,35 @@ const Finance = () => {
       .filter(c => !c.is_paid)
       .reduce((sum, c) => sum + parseFloat((c.chores as any)?.allowance_amount || 0), 0);
   }, [choreCompletions]);
+
+  // Chart data for income vs expenses
+  const incomeVsExpensesData = useMemo(() => {
+    return [
+      { name: 'Income', amount: budgetSummary.income, fill: '#10b981' },
+      { name: 'Expenses', amount: budgetSummary.expenses, fill: '#ef4444' },
+    ];
+  }, [budgetSummary]);
+
+  // Chart colors
+  const COLORS = ['#10b981', '#ef4444', '#3b82f6', '#f59e0b', '#8b5cf6'];
+
+  // Transaction categories breakdown
+  const categoryBreakdown = useMemo(() => {
+    const categories: { [key: string]: number } = {};
+    
+    transactions
+      .filter(t => t.type === 'expense')
+      .forEach(t => {
+        const category = t.description.split(' ')[0] || 'Other';
+        categories[category] = (categories[category] || 0) + parseFloat(t.amount as any);
+      });
+
+    return Object.entries(categories).map(([name, value], index) => ({
+      name,
+      value,
+      fill: COLORS[index % COLORS.length],
+    }));
+  }, [transactions]);
 
   const handleAddTransaction = async () => {
     if (!user?.id) {
@@ -420,6 +450,70 @@ const Finance = () => {
 
           {/* Budget Tab */}
           <TabsContent value="budget" className="space-y-6">
+            {/* Charts Section */}
+            <div className="grid gap-6 md:grid-cols-2 mb-6">
+              {/* Income vs Expenses Chart */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Income vs Expenses</CardTitle>
+                  <CardDescription>This month's financial overview</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={incomeVsExpensesData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <RechartsTooltip 
+                        formatter={(value: number) => `$${value.toFixed(2)}`}
+                      />
+                      <Bar dataKey="amount" radius={[8, 8, 0, 0]}>
+                        {incomeVsExpensesData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Spending Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Spending Breakdown</CardTitle>
+                  <CardDescription>Expense categories</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoryBreakdown.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={categoryBreakdown}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          dataKey="value"
+                        >
+                          {categoryBreakdown.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.fill} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip 
+                          formatter={(value: number) => `$${value.toFixed(2)}`}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                      No expense data to display
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Transactions</h2>
               <Dialog open={isTransactionOpen} onOpenChange={setIsTransactionOpen}>
