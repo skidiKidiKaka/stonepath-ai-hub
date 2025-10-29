@@ -249,15 +249,44 @@ export const GroupList = ({ onGroupSelect }: GroupListProps) => {
           text: `Join my group: ${groupName}`,
           url: shareUrl,
         });
-      } catch (error) {
-        // User cancelled share
+        toast({
+          title: "Shared",
+          description: "Group link shared successfully",
+        });
+      } catch (error: any) {
+        // Only show error if it's not a user cancellation
+        if (error.name !== 'AbortError') {
+          // Fallback to clipboard
+          try {
+            await navigator.clipboard.writeText(shareUrl);
+            toast({
+              title: "Link Copied",
+              description: "Group link copied to clipboard",
+            });
+          } catch (clipboardError) {
+            toast({
+              title: "Error",
+              description: "Failed to share or copy link",
+              variant: "destructive",
+            });
+          }
+        }
       }
     } else {
-      await navigator.clipboard.writeText(shareUrl);
-      toast({
-        title: "Link Copied",
-        description: "Group link copied to clipboard",
-      });
+      // Browser doesn't support share API, use clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({
+          title: "Link Copied",
+          description: "Group link copied to clipboard",
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to copy link to clipboard",
+          variant: "destructive",
+        });
+      }
     }
   };
 
