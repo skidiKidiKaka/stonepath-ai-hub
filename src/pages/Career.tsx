@@ -3,6 +3,7 @@ import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ResumeBuilder } from "@/components/ResumeBuilder";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -269,9 +270,7 @@ const Career = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full justify-start">
-                  Resume Templates
-                </Button>
+                <ResumeBuilder />
                 <Button variant="outline" className="w-full justify-start">
                   Interview Prep Guide
                 </Button>
