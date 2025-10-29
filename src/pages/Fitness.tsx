@@ -26,6 +26,11 @@ const Fitness = () => {
   const navigate = useNavigate();
   const [isWorkoutOpen, setIsWorkoutOpen] = useState(false);
   const [isRecipeOpen, setIsRecipeOpen] = useState(false);
+  const [isMealPlanOpen, setIsMealPlanOpen] = useState(false);
+  const [userHeight, setUserHeight] = useState("");
+  const [userWeight, setUserWeight] = useState("");
+  const [savedHeight, setSavedHeight] = useState<number | null>(null);
+  const [savedWeight, setSavedWeight] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Workout form state
@@ -197,6 +202,60 @@ const Fitness = () => {
   };
 
   // Calculate this week's stats
+  const handleSaveStats = () => {
+    const height = parseFloat(userHeight);
+    const weight = parseFloat(userWeight);
+    
+    if (isNaN(height) || isNaN(weight) || height <= 0 || weight <= 0) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter valid height and weight",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    localStorage.setItem('userHeight', height.toString());
+    localStorage.setItem('userWeight', weight.toString());
+    setSavedHeight(height);
+    setSavedWeight(weight);
+    setIsMealPlanOpen(false);
+    setUserHeight("");
+    setUserWeight("");
+
+    toast({
+      title: "Stats Saved",
+      description: "Your height and weight have been saved!",
+    });
+  };
+
+  const mealPlan = useMemo(() => {
+    if (!savedHeight || !savedWeight) return null;
+
+    return {
+      breakfast: [
+        { name: "Greek Yogurt Parfait", calories: 180, ingredients: "1 cup Greek yogurt, 1/4 cup granola, 1/2 cup mixed berries" },
+        { name: "Veggie Omelette", calories: 200, ingredients: "2 eggs, spinach, tomatoes, mushrooms, 1 slice whole wheat toast" },
+        { name: "Oatmeal Bowl", calories: 190, ingredients: "1/2 cup oats, 1 tbsp peanut butter, 1 small banana, cinnamon" },
+      ],
+      lunch: [
+        { name: "Grilled Chicken Salad", calories: 320, ingredients: "4 oz chicken breast, mixed greens, cherry tomatoes, cucumber, balsamic dressing" },
+        { name: "Turkey Wrap", calories: 300, ingredients: "Whole wheat tortilla, 3 oz turkey, lettuce, tomato, mustard" },
+        { name: "Quinoa Bowl", calories: 310, ingredients: "1/2 cup quinoa, black beans, roasted vegetables, lime dressing" },
+      ],
+      dinner: [
+        { name: "Baked Salmon", calories: 350, ingredients: "5 oz salmon, roasted broccoli, 1/2 cup brown rice" },
+        { name: "Chicken Stir-Fry", calories: 340, ingredients: "4 oz chicken, mixed vegetables, 1/2 cup rice, low-sodium soy sauce" },
+        { name: "Lean Beef & Vegetables", calories: 360, ingredients: "4 oz lean beef, roasted sweet potato, green beans" },
+      ],
+      snacks: [
+        { name: "Apple with Almond Butter", calories: 150, ingredients: "1 medium apple, 1 tbsp almond butter" },
+        { name: "Protein Smoothie", calories: 140, ingredients: "1 scoop protein powder, 1 cup almond milk, 1/2 banana" },
+        { name: "Veggie Sticks & Hummus", calories: 100, ingredients: "Carrots, celery, cucumber, 2 tbsp hummus" },
+      ],
+    };
+  }, [savedHeight, savedWeight]);
+
   const weekStats = useMemo(() => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
@@ -471,6 +530,107 @@ const Fitness = () => {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Heart className="w-5 h-5 text-red-500" />
+                <CardTitle>Custom Meal Plan (300-400 cal)</CardTitle>
+              </div>
+              <CardDescription>Personalized based on your stats</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!savedHeight || !savedWeight ? (
+                <Dialog open={isMealPlanOpen} onOpenChange={setIsMealPlanOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="w-full">
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Set Up Profile
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Enter Your Stats</DialogTitle>
+                      <DialogDescription>We'll create a personalized meal plan for you</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Height (inches)</Label>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 68"
+                          value={userHeight}
+                          onChange={(e) => setUserHeight(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Weight (lbs)</Label>
+                        <Input
+                          type="number"
+                          placeholder="e.g., 150"
+                          value={userWeight}
+                          onChange={(e) => setUserWeight(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleSaveStats} className="w-full">
+                        Save & Generate Plan
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span>Height: {savedHeight}"</span>
+                    <span>Weight: {savedWeight} lbs</span>
+                    <Button size="sm" variant="outline" onClick={() => setIsMealPlanOpen(true)}>
+                      Update
+                    </Button>
+                  </div>
+                  {mealPlan && (
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">Breakfast Options</h4>
+                        {mealPlan.breakfast.map((meal, idx) => (
+                          <div key={idx} className="text-xs p-2 border rounded mb-2">
+                            <div className="font-medium">{meal.name} - {meal.calories} cal</div>
+                            <div className="text-muted-foreground">{meal.ingredients}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">Lunch Options</h4>
+                        {mealPlan.lunch.map((meal, idx) => (
+                          <div key={idx} className="text-xs p-2 border rounded mb-2">
+                            <div className="font-medium">{meal.name} - {meal.calories} cal</div>
+                            <div className="text-muted-foreground">{meal.ingredients}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">Dinner Options</h4>
+                        {mealPlan.dinner.map((meal, idx) => (
+                          <div key={idx} className="text-xs p-2 border rounded mb-2">
+                            <div className="font-medium">{meal.name} - {meal.calories} cal</div>
+                            <div className="text-muted-foreground">{meal.ingredients}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm mb-2">Snack Options</h4>
+                        {mealPlan.snacks.map((meal, idx) => (
+                          <div key={idx} className="text-xs p-2 border rounded mb-2">
+                            <div className="font-medium">{meal.name} - {meal.calories} cal</div>
+                            <div className="text-muted-foreground">{meal.ingredients}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 

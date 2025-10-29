@@ -274,9 +274,62 @@ const Career = () => {
                 <Button variant="outline" className="w-full justify-start">
                   Interview Prep Guide
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  Career Exploration Tools
-                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-orange-500" />
+                <CardTitle>Career Exploration Tools</CardTitle>
+              </div>
+              <CardDescription>Professional networking and job search platforms</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <a 
+                    href="https://www.linkedin.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <h4 className="font-semibold text-orange-500 mb-2">LinkedIn</h4>
+                    <p className="text-sm text-muted-foreground">
+                      The world's largest professional network. Build your profile, connect with industry professionals, 
+                      search for jobs, and showcase your skills and experience.
+                    </p>
+                  </a>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <a 
+                    href="https://www.joinhandshake.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <h4 className="font-semibold text-orange-500 mb-2">Handshake</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Career network for college students and recent grads. Find internships, entry-level jobs, 
+                      and connect directly with employers recruiting on campus.
+                    </p>
+                  </a>
+                </div>
+                <div className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  <a 
+                    href="https://www.glassdoor.com" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <h4 className="font-semibold text-orange-500 mb-2">Glassdoor</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Research companies, read employee reviews, see salary information, and find jobs. 
+                      Get insider insights before applying or interviewing.
+                    </p>
+                  </a>
+                </div>
               </div>
             </CardContent>
           </Card>

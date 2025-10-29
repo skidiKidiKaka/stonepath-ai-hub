@@ -40,7 +40,9 @@ const Finance = () => {
   const [isTransactionOpen, setIsTransactionOpen] = useState(false);
   const [isChoreOpen, setIsChoreOpen] = useState(false);
   const [isGoalOpen, setIsGoalOpen] = useState(false);
+  const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [monthlyBudget, setMonthlyBudget] = useState("");
 
   // Transaction form state
   const [transAmount, setTransAmount] = useState("");
@@ -137,6 +139,24 @@ const Finance = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch budget
+  const { data: budgetData, refetch: refetchBudget } = useQuery({
+    queryKey: ['budget', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('budget_categories')
+        .select('monthly_budget')
+        .eq('user_id', user.id)
+        .eq('name', 'Monthly Budget')
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   // Calculate budget summary
   const budgetSummary = useMemo(() => {
     const thisMonth = new Date().getMonth();
@@ -155,8 +175,11 @@ const Finance = () => {
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + parseFloat(t.amount as any), 0);
 
-    return { income, expenses, balance: income - expenses };
-  }, [transactions]);
+    const budget = budgetData?.monthly_budget ? parseFloat(budgetData.monthly_budget as any) : 0;
+    const remaining = budget > 0 ? budget - expenses : 0;
+
+    return { income, expenses, balance: income - expenses, budget, remaining };
+  }, [transactions, budgetData]);
 
   // Calculate pending allowances
   const pendingAllowance = useMemo(() => {
@@ -444,6 +467,62 @@ const Finance = () => {
     }
   };
 
+  const handleSetBudget = async () => {
+    if (!user?.id) {
+      toast({ title: "Authentication Required", description: "Please log in.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const budget = parseFloat(monthlyBudget);
+      if (isNaN(budget) || budget <= 0) {
+        toast({ title: "Invalid Input", description: "Please enter a valid budget amount", variant: "destructive" });
+        return;
+      }
+
+      setIsSubmitting(true);
+
+      // Check if budget exists
+      const { data: existing } = await supabase
+        .from('budget_categories')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('name', 'Monthly Budget')
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing
+        const { error } = await supabase
+          .from('budget_categories')
+          .update({ monthly_budget: budget })
+          .eq('id', existing.id);
+
+        if (error) throw error;
+      } else {
+        // Create new
+        const { error } = await supabase
+          .from('budget_categories')
+          .insert([{
+            user_id: user.id,
+            name: 'Monthly Budget',
+            type: 'expense',
+            monthly_budget: budget,
+          }]);
+
+        if (error) throw error;
+      }
+
+      toast({ title: "Budget Set", description: `Monthly budget set to $${budget.toFixed(2)}` });
+      setIsBudgetOpen(false);
+      setMonthlyBudget("");
+      refetchBudget();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to set budget.", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -460,7 +539,45 @@ const Finance = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Budget Overview */}
-        <div className="grid gap-4 md:grid-cols-3 mb-6">
+        <div className="grid gap-4 md:grid-cols-4 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Monthly Budget</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex justify-between items-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  ${budgetSummary.budget > 0 ? budgetSummary.budget.toFixed(2) : '--'}
+                </div>
+                <Dialog open={isBudgetOpen} onOpenChange={setIsBudgetOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">Set</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Set Monthly Budget</DialogTitle>
+                      <DialogDescription>Set your total monthly spending limit</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Budget Amount ($)</Label>
+                        <Input
+                          type="number"
+                          placeholder="1000.00"
+                          value={monthlyBudget}
+                          onChange={(e) => setMonthlyBudget(e.target.value)}
+                          step="0.01"
+                        />
+                      </div>
+                      <Button onClick={handleSetBudget} disabled={isSubmitting} className="w-full">
+                        Set Budget
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>This Month's Income</CardDescription>
@@ -475,6 +592,11 @@ const Finance = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-red-600">${budgetSummary.expenses.toFixed(2)}</div>
+              {budgetSummary.budget > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  ${budgetSummary.remaining.toFixed(2)} remaining
+                </div>
+              )}
             </CardContent>
           </Card>
           <Card>

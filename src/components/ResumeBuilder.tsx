@@ -201,7 +201,210 @@ export const ResumeBuilder = () => {
                         onChange={(e) => updateField("linkedin", e.target.value)}
                       />
                     </div>
+                    <div>
+                      <Label>GitHub</Label>
+                      <Input
+                        value={resumeData.github}
+                        onChange={(e) => updateField("github", e.target.value)}
+                      />
+                    </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Education */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Education</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {resumeData.education.map((edu, idx) => (
+                    <div key={idx} className="space-y-3 p-4 border rounded-lg">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>School</Label>
+                          <Input
+                            value={edu.school}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].school = e.target.value;
+                              updateField("education", newEdu);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Location</Label>
+                          <Input
+                            value={edu.location}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].location = e.target.value;
+                              updateField("education", newEdu);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Degree</Label>
+                          <Input
+                            value={edu.degree}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].degree = e.target.value;
+                              updateField("education", newEdu);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Dates</Label>
+                          <Input
+                            value={edu.dates}
+                            onChange={(e) => {
+                              const newEdu = [...resumeData.education];
+                              newEdu[idx].dates = e.target.value;
+                              updateField("education", newEdu);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Experience */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Experience</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {resumeData.experience.map((exp, idx) => (
+                    <div key={idx} className="space-y-3 p-4 border rounded-lg">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Title</Label>
+                          <Input
+                            value={exp.title}
+                            onChange={(e) => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].title = e.target.value;
+                              updateField("experience", newExp);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Company</Label>
+                          <Input
+                            value={exp.company}
+                            onChange={(e) => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].company = e.target.value;
+                              updateField("experience", newExp);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Location</Label>
+                          <Input
+                            value={exp.location}
+                            onChange={(e) => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].location = e.target.value;
+                              updateField("experience", newExp);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Dates</Label>
+                          <Input
+                            value={exp.dates}
+                            onChange={(e) => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].dates = e.target.value;
+                              updateField("experience", newExp);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Responsibilities</Label>
+                        {exp.bullets.map((bullet, bidx) => (
+                          <Textarea
+                            key={bidx}
+                            value={bullet}
+                            className="mb-2"
+                            onChange={(e) => {
+                              const newExp = [...resumeData.experience];
+                              newExp[idx].bullets[bidx] = e.target.value;
+                              updateField("experience", newExp);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Projects */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Projects</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {resumeData.projects.map((proj, idx) => (
+                    <div key={idx} className="space-y-3 p-4 border rounded-lg">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label>Project Name</Label>
+                          <Input
+                            value={proj.name}
+                            onChange={(e) => {
+                              const newProj = [...resumeData.projects];
+                              newProj[idx].name = e.target.value;
+                              updateField("projects", newProj);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Technologies</Label>
+                          <Input
+                            value={proj.tech}
+                            onChange={(e) => {
+                              const newProj = [...resumeData.projects];
+                              newProj[idx].tech = e.target.value;
+                              updateField("projects", newProj);
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <Label>Dates</Label>
+                          <Input
+                            value={proj.dates}
+                            onChange={(e) => {
+                              const newProj = [...resumeData.projects];
+                              newProj[idx].dates = e.target.value;
+                              updateField("projects", newProj);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label>Details</Label>
+                        {proj.bullets.map((bullet, bidx) => (
+                          <Textarea
+                            key={bidx}
+                            value={bullet}
+                            className="mb-2"
+                            onChange={(e) => {
+                              const newProj = [...resumeData.projects];
+                              newProj[idx].bullets[bidx] = e.target.value;
+                              updateField("projects", newProj);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
 
@@ -223,6 +426,20 @@ export const ResumeBuilder = () => {
                     <Textarea
                       value={resumeData.skills.frameworks}
                       onChange={(e) => updateField("skills", { ...resumeData.skills, frameworks: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Developer Tools</Label>
+                    <Textarea
+                      value={resumeData.skills.tools}
+                      onChange={(e) => updateField("skills", { ...resumeData.skills, tools: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Libraries</Label>
+                    <Textarea
+                      value={resumeData.skills.libraries}
+                      onChange={(e) => updateField("skills", { ...resumeData.skills, libraries: e.target.value })}
                     />
                   </div>
                 </CardContent>
