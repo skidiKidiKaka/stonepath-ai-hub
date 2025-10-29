@@ -53,6 +53,36 @@ export type Database = {
         }
         Relationships: []
       }
+      budget_categories: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          monthly_budget: number | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          monthly_budget?: number | null
+          name: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          monthly_budget?: number | null
+          name?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       bullying_reports: {
         Row: {
           created_at: string
@@ -109,6 +139,77 @@ export type Database = {
           quote?: string
           recommended_careers?: Json
           result_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      chore_completions: {
+        Row: {
+          chore_id: string
+          completed_date: string
+          created_at: string
+          id: string
+          is_paid: boolean
+          notes: string | null
+          user_id: string
+        }
+        Insert: {
+          chore_id: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          user_id: string
+        }
+        Update: {
+          chore_id?: string
+          completed_date?: string
+          created_at?: string
+          id?: string
+          is_paid?: boolean
+          notes?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chore_completions_chore_id_fkey"
+            columns: ["chore_id"]
+            isOneToOne: false
+            referencedRelation: "chores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chores: {
+        Row: {
+          allowance_amount: number
+          created_at: string
+          description: string | null
+          frequency: string
+          id: string
+          is_active: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          allowance_amount: number
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          allowance_amount?: number
+          created_at?: string
+          description?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          title?: string
           user_id?: string
         }
         Relationships: []
@@ -429,6 +530,77 @@ export type Database = {
           question?: string
         }
         Relationships: []
+      }
+      savings_goals: {
+        Row: {
+          created_at: string
+          current_amount: number
+          goal_name: string
+          id: string
+          target_amount: number
+          target_date: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number
+          goal_name: string
+          id?: string
+          target_amount: number
+          target_date?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number
+          goal_name?: string
+          id?: string
+          target_amount?: number
+          target_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          description: string
+          id: string
+          transaction_date: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          transaction_date?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          transaction_date?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "budget_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_logs: {
         Row: {
