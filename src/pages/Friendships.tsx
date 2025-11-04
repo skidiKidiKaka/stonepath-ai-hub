@@ -7,6 +7,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GroupList } from "@/components/GroupList";
 import { GroupChat } from "@/components/GroupChat";
 import { GroupEvents } from "@/components/GroupEvents";
+import { UserAvailability } from "@/components/UserAvailability";
+import { GroupAvailability } from "@/components/GroupAvailability";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -170,17 +172,22 @@ const Friendships = () => {
               </Card>
             </div>
 
+            <UserAvailability />
+
             <GroupList onGroupSelect={handleGroupSelect} />
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <GroupChat
-              groupId={selectedGroupId}
-              groupName={selectedGroupName}
-              userRole={userRole}
-              onBack={handleBack}
-            />
-            <GroupEvents groupId={selectedGroupId} userRole={userRole} />
+          <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <GroupChat
+                groupId={selectedGroupId}
+                groupName={selectedGroupName}
+                userRole={userRole}
+                onBack={handleBack}
+              />
+              <GroupEvents groupId={selectedGroupId} userRole={userRole} />
+            </div>
+            <GroupAvailability groupId={selectedGroupId} />
           </div>
         )}
       </main>
