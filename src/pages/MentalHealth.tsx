@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Brain, Heart, Smile, Moon, ChevronDown, Play, Pause, Sparkles, Calendar } from "lucide-react";
+import { ArrowLeft, Heart, Smile, Moon, ChevronDown, Play, Pause, Sparkles, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,8 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import meditationAudio from "@/assets/meditation-music.mp3";
+import { MoodTracker } from "@/components/MoodTracker";
 
-type Mood = "very_sad" | "sad" | "neutral" | "happy" | "very_happy" | null;
 type ZodiacSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
 type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal" | null;
 
@@ -55,73 +55,17 @@ const cyclePhases = {
   }
 };
 
-const moodData = {
-  very_sad: {
-    emoji: "😢",
-    advice: "It's okay to feel down. Remember, tough times don't last, but tough people do. You're stronger than you think.",
-    quote: "The darkest nights produce the brightest stars. - John Green",
-    tips: [
-      "• Reach out to a friend or family member",
-      "• Try journaling your feelings",
-      "• Take a gentle walk outside",
-      "• Practice self-compassion"
-    ],
-    ttsMessage: "I understand you're feeling down right now. Remember, it's okay not to be okay. Take a deep breath. You are not alone, and this feeling will pass. Be gentle with yourself today."
-  },
-  sad: {
-    emoji: "😕",
-    advice: "Everyone has difficult days. This feeling is temporary, and brighter days are ahead. Be kind to yourself.",
-    quote: "Every storm runs out of rain. - Maya Angelou",
-    tips: [
-      "• Listen to uplifting music",
-      "• Connect with someone who cares",
-      "• Do something creative",
-      "• Practice mindfulness"
-    ],
-    ttsMessage: "I hear you. It's been a tough day. Remember to breathe deeply and take things one moment at a time. You have the strength to get through this."
-  },
-  neutral: {
-    emoji: "😐",
-    advice: "Balance is important. Use this steady moment to reflect and recharge for what's ahead.",
-    quote: "In the middle of difficulty lies opportunity. - Albert Einstein",
-    tips: [
-      "• Set small achievable goals",
-      "• Practice gratitude",
-      "• Try a new hobby or activity",
-      "• Maintain healthy routines"
-    ],
-    ttsMessage: "You're in a calm, balanced space right now. This is a great time to pause, reflect, and set intentions for the days ahead. Stay centered."
-  },
-  happy: {
-    emoji: "🙂",
-    advice: "Your positive energy is wonderful! Keep nurturing what makes you feel good and share your light with others.",
-    quote: "Happiness is not something ready made. It comes from your own actions. - Dalai Lama",
-    tips: [
-      "• Share your joy with others",
-      "• Celebrate small wins",
-      "• Try something new today",
-      "• Practice acts of kindness"
-    ],
-    ttsMessage: "It's beautiful to see you feeling good today. Keep nurturing this positive energy. Share your smile with the world and celebrate this moment."
-  },
-  very_happy: {
-    emoji: "😊",
-    advice: "Your joy is contagious! Embrace this wonderful feeling and let it fuel your passions and connections.",
-    quote: "Joy is the simplest form of gratitude. - Karl Barth",
-    tips: [
-      "• Express gratitude for this moment",
-      "• Inspire others with your energy",
-      "• Document this happy memory",
-      "• Plan something exciting"
-    ],
-    ttsMessage: "Your happiness is radiating! This is wonderful. Take a moment to appreciate this feeling and all the good things in your life. You deserve this joy."
-  }
-};
 
 const MentalHealth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [selectedMood, setSelectedMood] = useState<Mood>(null);
+  const [isMoodTrackerOpen, setIsMoodTrackerOpen] = useState(false);
+  const [moodData, setMoodData] = useState<{
+    level: number;
+    feelings: string[];
+    impacts: string[];
+    tips: string[];
+  } | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [zodiacSign, setZodiacSign] = useState<ZodiacSign>(null);
@@ -134,11 +78,8 @@ const MentalHealth = () => {
     if (savedCycle) setCyclePhase(savedCycle);
   }, []);
 
-  const handleMoodSelection = (mood: Mood) => {
-    setSelectedMood(mood);
-    
-    if (!mood) return;
-    
+  const handleMoodComplete = (level: number, feelings: string[], impacts: string[], tips: string[]) => {
+    setMoodData({ level, feelings, impacts, tips });
     toast({
       title: "Mood Recorded",
       description: "Your personalized tips are ready!",
@@ -193,32 +134,25 @@ const MentalHealth = () => {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-purple-500" />
-                <CardTitle>Daily Mood Check</CardTitle>
+                <Smile className="w-5 h-5 text-purple-500" />
+                <CardTitle>State of Mind</CardTitle>
               </div>
-              <CardDescription>Track how you're feeling today</CardDescription>
+              <CardDescription>Track your emotional wellbeing</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between gap-2">
-                  {(["very_sad", "sad", "neutral", "happy", "very_happy"] as Mood[]).map((mood) => (
-                    <Button 
-                      key={mood} 
-                      variant={selectedMood === mood ? "default" : "outline"} 
-                      className="flex-1 text-2xl"
-                      onClick={() => handleMoodSelection(mood)}
-                    >
-                      {moodData[mood!].emoji}
-                    </Button>
-                  ))}
+              <Button 
+                onClick={() => setIsMoodTrackerOpen(true)}
+                className="w-full py-6 text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              >
+                🌸 Check In
+              </Button>
+              {moodData && (
+                <div className="mt-4 p-4 bg-purple-500/10 rounded-lg space-y-2">
+                  <p className="text-sm font-semibold">Latest Mood: {["Very Unpleasant", "Unpleasant", "Slightly Unpleasant", "Neutral", "Slightly Pleasant", "Pleasant", "Very Pleasant"][moodData.level]}</p>
+                  <p className="text-xs text-muted-foreground">Feelings: {moodData.feelings.join(", ")}</p>
+                  <p className="text-xs text-muted-foreground">Impacts: {moodData.impacts.join(", ")}</p>
                 </div>
-                {selectedMood && (
-                  <div className="mt-4 p-4 bg-purple-500/10 rounded-lg space-y-2">
-                    <p className="text-sm font-semibold">{moodData[selectedMood].advice}</p>
-                    <p className="text-xs italic text-muted-foreground">"{moodData[selectedMood].quote}"</p>
-                  </div>
-                )}
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -245,16 +179,16 @@ const MentalHealth = () => {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Smile className="w-5 h-5 text-purple-500" />
-                <CardTitle>Quick Tips</CardTitle>
+                <CardTitle>Personalized Tips</CardTitle>
               </div>
               <CardDescription>
-                {selectedMood ? "Based on your current mood" : "Select a mood to see personalized tips"}
+                {moodData ? "Based on your state of mind" : "Check in to see personalized tips"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
-                {selectedMood ? (
-                  moodData[selectedMood].tips.map((tip, index) => (
+                {moodData ? (
+                  moodData.tips.map((tip, index) => (
                     <li key={index}>{tip}</li>
                   ))
                 ) : (
@@ -441,6 +375,12 @@ const MentalHealth = () => {
           </Card>
         </div>
       </main>
+
+      <MoodTracker 
+        open={isMoodTrackerOpen}
+        onClose={() => setIsMoodTrackerOpen(false)}
+        onComplete={handleMoodComplete}
+      />
     </div>
   );
 };
