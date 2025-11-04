@@ -1,14 +1,59 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Brain, Heart, Smile, Moon, ChevronDown, Play, Pause } from "lucide-react";
+import { ArrowLeft, Brain, Heart, Smile, Moon, ChevronDown, Play, Pause, Sparkles, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useState, useRef } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import meditationAudio from "@/assets/meditation-music.mp3";
 
 type Mood = "very_sad" | "sad" | "neutral" | "happy" | "very_happy" | null;
+type ZodiacSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
+type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal" | null;
+
+const zodiacInsights = {
+  aries: { emoji: "♈", insight: "Your energy is high today. Channel it into productive activities and self-care routines.", affirmation: "I am bold and capable of handling any challenge." },
+  taurus: { emoji: "♉", insight: "Focus on grounding activities. Nature walks and comfort foods will bring you peace.", affirmation: "I am stable and secure in who I am." },
+  gemini: { emoji: "♊", insight: "Communication is key today. Express your feelings and connect with loved ones.", affirmation: "I embrace change and adapt with ease." },
+  cancer: { emoji: "♋", insight: "Nurture yourself as you nurture others. Self-compassion is your superpower.", affirmation: "I honor my emotions and care for myself deeply." },
+  leo: { emoji: "♌", insight: "Your creativity shines bright. Express yourself through art, movement, or journaling.", affirmation: "I radiate confidence and positive energy." },
+  virgo: { emoji: "♍", insight: "Organization brings you calm. Create structure in your day while being gentle with yourself.", affirmation: "I accept myself exactly as I am." },
+  libra: { emoji: "♎", insight: "Balance is essential. Take time for both social connection and solitude.", affirmation: "I create harmony in my life and relationships." },
+  scorpio: { emoji: "♏", insight: "Deep reflection serves you well. Honor your intensity and emotional depth.", affirmation: "I embrace transformation and personal growth." },
+  sagittarius: { emoji: "♐", insight: "Adventure awaits! Try something new today, even if it's small.", affirmation: "I am free to explore and grow." },
+  capricorn: { emoji: "♑", insight: "Your dedication is admirable. Remember to rest and celebrate your progress.", affirmation: "I am worthy of rest and success." },
+  aquarius: { emoji: "♒", insight: "Your unique perspective is valuable. Share your thoughts with those who matter.", affirmation: "I honor my individuality and authenticity." },
+  pisces: { emoji: "♓", insight: "Your intuition is strong. Trust your feelings and practice creative expression.", affirmation: "I trust my inner wisdom and intuition." }
+};
+
+const cyclePhases = {
+  menstrual: { 
+    phase: "Menstrual Phase", 
+    description: "Days 1-5: Your body is shedding. Rest is crucial.",
+    tips: ["• Rest and prioritize sleep", "• Practice gentle yoga or stretching", "• Stay hydrated and eat iron-rich foods", "• Be extra gentle with yourself"],
+    moodSupport: "It's normal to feel low energy. Honor this need for rest."
+  },
+  follicular: { 
+    phase: "Follicular Phase", 
+    description: "Days 6-14: Energy is building. Great time for new activities.",
+    tips: ["• Try new exercises or activities", "• Socialize and connect with friends", "• Take on challenging tasks", "• Plan and start new projects"],
+    moodSupport: "Your mood and energy are naturally rising. Embrace this positive phase!"
+  },
+  ovulation: { 
+    phase: "Ovulation Phase", 
+    description: "Days 15-17: Peak energy and confidence.",
+    tips: ["• Schedule important meetings or events", "• Engage in high-intensity workouts", "• Express yourself creatively", "• Enjoy social activities"],
+    moodSupport: "You're in your power! Your confidence and communication skills are at their peak."
+  },
+  luteal: { 
+    phase: "Luteal Phase", 
+    description: "Days 18-28: Energy gradually decreases. Focus inward.",
+    tips: ["• Practice self-care routines", "• Reduce caffeine and sugar", "• Do calming activities like reading", "• Prepare for menstruation"],
+    moodSupport: "PMS symptoms may appear. Be patient with yourself and practice extra self-compassion."
+  }
+};
 
 const moodData = {
   very_sad: {
@@ -79,6 +124,15 @@ const MentalHealth = () => {
   const [selectedMood, setSelectedMood] = useState<Mood>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [zodiacSign, setZodiacSign] = useState<ZodiacSign>(null);
+  const [cyclePhase, setCyclePhase] = useState<CyclePhase>(null);
+
+  useEffect(() => {
+    const savedZodiac = localStorage.getItem('zodiacSign') as ZodiacSign;
+    const savedCycle = localStorage.getItem('cyclePhase') as CyclePhase;
+    if (savedZodiac) setZodiacSign(savedZodiac);
+    if (savedCycle) setCyclePhase(savedCycle);
+  }, []);
 
   const handleMoodSelection = (mood: Mood) => {
     setSelectedMood(mood);
@@ -100,6 +154,24 @@ const MentalHealth = () => {
       audioRef.current.play();
     }
     setIsPlayingAudio(!isPlayingAudio);
+  };
+
+  const handleZodiacChange = (sign: ZodiacSign) => {
+    setZodiacSign(sign);
+    localStorage.setItem('zodiacSign', sign || '');
+    toast({
+      title: "Zodiac Sign Saved",
+      description: "Your personalized insights are ready!",
+    });
+  };
+
+  const handleCycleChange = (phase: CyclePhase) => {
+    setCyclePhase(phase);
+    localStorage.setItem('cyclePhase', phase || '');
+    toast({
+      title: "Cycle Phase Updated",
+      description: "Your wellness tips have been updated!",
+    });
   };
 
   return (
@@ -275,6 +347,95 @@ const MentalHealth = () => {
                     </ol>
                   </CollapsibleContent>
                 </Collapsible>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-500" />
+                <CardTitle>Zodiac Wellness</CardTitle>
+              </div>
+              <CardDescription>Personalized insights based on your sign</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Select value={zodiacSign || ""} onValueChange={handleZodiacChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your zodiac sign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aries">♈ Aries</SelectItem>
+                    <SelectItem value="taurus">♉ Taurus</SelectItem>
+                    <SelectItem value="gemini">♊ Gemini</SelectItem>
+                    <SelectItem value="cancer">♋ Cancer</SelectItem>
+                    <SelectItem value="leo">♌ Leo</SelectItem>
+                    <SelectItem value="virgo">♍ Virgo</SelectItem>
+                    <SelectItem value="libra">♎ Libra</SelectItem>
+                    <SelectItem value="scorpio">♏ Scorpio</SelectItem>
+                    <SelectItem value="sagittarius">♐ Sagittarius</SelectItem>
+                    <SelectItem value="capricorn">♑ Capricorn</SelectItem>
+                    <SelectItem value="aquarius">♒ Aquarius</SelectItem>
+                    <SelectItem value="pisces">♓ Pisces</SelectItem>
+                  </SelectContent>
+                </Select>
+                {zodiacSign && (
+                  <div className="p-4 bg-purple-500/10 rounded-lg space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-3xl">{zodiacInsights[zodiacSign].emoji}</span>
+                      <h3 className="font-semibold capitalize">{zodiacSign}</h3>
+                    </div>
+                    <p className="text-sm">{zodiacInsights[zodiacSign].insight}</p>
+                    <div className="pt-2 border-t border-purple-500/20">
+                      <p className="text-xs font-medium text-muted-foreground">Daily Affirmation:</p>
+                      <p className="text-sm italic">"{zodiacInsights[zodiacSign].affirmation}"</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-purple-500" />
+                <CardTitle>Cycle Wellness</CardTitle>
+              </div>
+              <CardDescription>Track your cycle for better mental health</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <Select value={cyclePhase || ""} onValueChange={handleCycleChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select current cycle phase" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="menstrual">🩸 Menstrual (Days 1-5)</SelectItem>
+                    <SelectItem value="follicular">🌱 Follicular (Days 6-14)</SelectItem>
+                    <SelectItem value="ovulation">✨ Ovulation (Days 15-17)</SelectItem>
+                    <SelectItem value="luteal">🌙 Luteal (Days 18-28)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {cyclePhase && (
+                  <div className="p-4 bg-purple-500/10 rounded-lg space-y-3">
+                    <h3 className="font-semibold">{cyclePhases[cyclePhase].phase}</h3>
+                    <p className="text-xs text-muted-foreground">{cyclePhases[cyclePhase].description}</p>
+                    <div className="pt-2 border-t border-purple-500/20">
+                      <p className="text-xs font-medium mb-2">Wellness Tips:</p>
+                      <ul className="text-sm space-y-1">
+                        {cyclePhases[cyclePhase].tips.map((tip, index) => (
+                          <li key={index}>{tip}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="pt-2 border-t border-purple-500/20">
+                      <p className="text-xs font-medium text-muted-foreground">Mood Support:</p>
+                      <p className="text-sm italic">{cyclePhases[cyclePhase].moodSupport}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
