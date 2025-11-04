@@ -3,6 +3,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type MoodLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type Step = "slider" | "feelings" | "impact";
@@ -117,7 +118,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step === "slider") {
       setStep("feelings");
     } else if (step === "feelings") {
@@ -137,6 +138,34 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         });
         return;
       }
+      
+      // Save mood entry to database
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase
+          .from("mood_entries")
+          .insert({
+            user_id: user.id,
+            mood_level: moodLevel,
+            feelings: selectedFeelings,
+            impact_factors: selectedImpacts
+          });
+
+        if (error) {
+          console.error("Error saving mood entry:", error);
+          toast({
+            title: "Failed to save mood entry",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        toast({
+          title: "Mood logged successfully!",
+          description: "Your wellness score has been updated."
+        });
+      }
+      
       const tips = getTipsBySelection(moodLevel, selectedFeelings, selectedImpacts);
       onComplete(moodLevel, selectedFeelings, selectedImpacts, tips);
       handleClose();

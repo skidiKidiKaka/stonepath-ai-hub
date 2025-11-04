@@ -483,6 +483,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mood_entries: {
+        Row: {
+          created_at: string
+          feelings: string[]
+          id: string
+          impact_factors: string[]
+          mood_level: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feelings: string[]
+          id?: string
+          impact_factors: string[]
+          mood_level: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feelings?: string[]
+          id?: string
+          impact_factors?: string[]
+          mood_level?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

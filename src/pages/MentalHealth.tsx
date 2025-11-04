@@ -9,6 +9,7 @@ import { useState, useRef, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import meditationAudio from "@/assets/meditation-music.mp3";
 import { MoodTracker } from "@/components/MoodTracker";
+import { MoodChart } from "@/components/MoodChart";
 
 type ZodiacSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
 type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal" | null;
@@ -66,6 +67,7 @@ const MentalHealth = () => {
     impacts: string[];
     tips: string[];
   } | null>(null);
+  const [moodChartKey, setMoodChartKey] = useState(0);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [zodiacSign, setZodiacSign] = useState<ZodiacSign>(null);
@@ -80,6 +82,7 @@ const MentalHealth = () => {
 
   const handleMoodComplete = (level: number, feelings: string[], impacts: string[], tips: string[]) => {
     setMoodData({ level, feelings, impacts, tips });
+    setMoodChartKey(prev => prev + 1); // Force chart refresh
     toast({
       title: "Mood Recorded",
       description: "Your personalized tips are ready!",
@@ -131,49 +134,34 @@ const MentalHealth = () => {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Smile className="w-5 h-5 text-purple-500" />
-                <CardTitle>State of Mind</CardTitle>
-              </div>
-              <CardDescription>Track your emotional wellbeing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                onClick={() => setIsMoodTrackerOpen(true)}
-                className="w-full py-6 text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
-              >
-                🌸 Check In
-              </Button>
-              {moodData && (
-                <div className="mt-4 p-4 bg-purple-500/10 rounded-lg space-y-2">
-                  <p className="text-sm font-semibold">Latest Mood: {["Very Unpleasant", "Unpleasant", "Slightly Unpleasant", "Neutral", "Slightly Pleasant", "Pleasant", "Very Pleasant"][moodData.level]}</p>
-                  <p className="text-xs text-muted-foreground">Feelings: {moodData.feelings.join(", ")}</p>
-                  <p className="text-xs text-muted-foreground">Impacts: {moodData.impacts.join(", ")}</p>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Smile className="w-5 h-5 text-purple-500" />
+                  <CardTitle>State of Mind</CardTitle>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <CardDescription>Track your emotional wellbeing</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button 
+                  onClick={() => setIsMoodTrackerOpen(true)}
+                  className="w-full py-6 text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+                >
+                  🌸 Check In
+                </Button>
+                {moodData && (
+                  <div className="mt-4 p-4 bg-purple-500/10 rounded-lg space-y-2">
+                    <p className="text-sm font-semibold">Latest Mood: {["Very Unpleasant", "Unpleasant", "Slightly Unpleasant", "Neutral", "Slightly Pleasant", "Pleasant", "Very Pleasant"][moodData.level]}</p>
+                    <p className="text-xs text-muted-foreground">Feelings: {moodData.feelings.join(", ")}</p>
+                    <p className="text-xs text-muted-foreground">Impacts: {moodData.impacts.join(", ")}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Heart className="w-5 h-5 text-purple-500" />
-                <CardTitle>Wellness Score</CardTitle>
-              </div>
-              <CardDescription>Your overall mental wellness this week</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Score</span>
-                  <span className="font-bold">75%</span>
-                </div>
-                <Progress value={75} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
+            <MoodChart key={moodChartKey} />
+          </div>
 
           <Card>
             <CardHeader>
