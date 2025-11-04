@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, Clock, Trash2 } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Trash2, BookOpen, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ interface Assignment {
   subject: string | null;
   priority: string;
   status: string;
+  type?: string;
 }
 
 interface AssignmentListProps {
@@ -84,13 +85,13 @@ export const AssignmentList = ({ assignments, onAssignmentUpdated }: AssignmentL
       <CardHeader>
         <div className="flex items-center gap-2">
           <Clock className="w-5 h-5 text-blue-500" />
-          <CardTitle>My Assignments</CardTitle>
+          <CardTitle>My Assignments & Exams</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
         {sortedAssignments.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            No assignments yet. Add your first one!
+            No assignments or exams yet. Add your first one!
           </p>
         ) : (
           <div className="space-y-2">
@@ -99,7 +100,7 @@ export const AssignmentList = ({ assignments, onAssignmentUpdated }: AssignmentL
                 key={assignment.id}
                 className={`p-3 rounded-lg border ${
                   assignment.status === "completed" ? "bg-muted/50" : "bg-card"
-                }`}
+                } ${assignment.type === 'exam' ? 'border-purple-500/30' : 'border-blue-500/30'}`}
               >
                 <div className="flex items-start gap-3">
                   <Button
@@ -118,16 +119,23 @@ export const AssignmentList = ({ assignments, onAssignmentUpdated }: AssignmentL
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <h4 className={`font-medium ${
-                          assignment.status === "completed" ? "line-through text-muted-foreground" : ""
-                        }`}>
-                          {assignment.title}
-                        </h4>
+                        <div className="flex items-center gap-2">
+                          {assignment.type === 'exam' ? (
+                            <GraduationCap className="h-4 w-4 text-purple-500" />
+                          ) : (
+                            <BookOpen className="h-4 w-4 text-blue-500" />
+                          )}
+                          <h4 className={`font-medium ${
+                            assignment.status === "completed" ? "line-through text-muted-foreground" : ""
+                          }`}>
+                            {assignment.title}
+                          </h4>
+                        </div>
                         {assignment.subject && (
-                          <p className="text-xs text-muted-foreground">{assignment.subject}</p>
+                          <p className="text-xs text-muted-foreground ml-6">{assignment.subject}</p>
                         )}
                         {assignment.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{assignment.description}</p>
+                          <p className="text-sm text-muted-foreground mt-1 ml-6">{assignment.description}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2">
@@ -144,8 +152,8 @@ export const AssignmentList = ({ assignments, onAssignmentUpdated }: AssignmentL
                         </Button>
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Due {formatDistanceToNow(new Date(assignment.due_date), { addSuffix: true })}
+                    <p className="text-xs text-muted-foreground mt-1 ml-6">
+                      {assignment.type === 'exam' ? 'Exam' : 'Due'} {formatDistanceToNow(new Date(assignment.due_date), { addSuffix: true })}
                     </p>
                   </div>
                 </div>

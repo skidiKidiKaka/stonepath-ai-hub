@@ -17,6 +17,7 @@ interface Assignment {
   subject: string | null;
   priority: string;
   status: string;
+  type?: string;
 }
 
 const Academics = () => {

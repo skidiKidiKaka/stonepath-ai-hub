@@ -20,6 +20,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
   const [dueDate, setDueDate] = useState("");
   const [subject, setSubject] = useState("");
   const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
+  const [type, setType] = useState<"assignment" | "exam">("assignment");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -71,6 +72,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
       due_date: new Date(dueDate).toISOString(),
       subject,
       priority,
+      type,
       status: "pending",
     });
 
@@ -87,7 +89,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
 
     toast({
       title: "Success",
-      description: "Assignment added successfully",
+      description: `${type === 'exam' ? 'Exam' : 'Assignment'} added successfully`,
     });
 
     setTitle("");
@@ -95,6 +97,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
     setDueDate("");
     setSubject("");
     setPriority("medium");
+    setType("assignment");
     setOpen(false);
     onAssignmentAdded();
   };
@@ -104,21 +107,51 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
       <DialogTrigger asChild>
         <Button className="gap-2">
           <Plus className="h-4 w-4" />
-          Add Assignment
+          Add Assignment/Exam
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Add New Assignment</DialogTitle>
+          <DialogTitle>Add New {type === 'exam' ? 'Exam' : 'Assignment'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label>Type *</Label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => setType("assignment")}
+                className={cn(
+                  "flex-1",
+                  type === "assignment" 
+                    ? "bg-blue-500 hover:bg-blue-600 text-white" 
+                    : "bg-blue-100 hover:bg-blue-200 text-blue-700"
+                )}
+              >
+                📝 Assignment
+              </Button>
+              <Button
+                type="button"
+                onClick={() => setType("exam")}
+                className={cn(
+                  "flex-1",
+                  type === "exam" 
+                    ? "bg-purple-500 hover:bg-purple-600 text-white" 
+                    : "bg-purple-100 hover:bg-purple-200 text-purple-700"
+                )}
+              >
+                📚 Exam
+              </Button>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="title">Title *</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(capitalizeFirstLetter(e.target.value))}
-              placeholder="Assignment title"
+              placeholder={type === 'exam' ? "e.g., Math Final Exam" : "e.g., Essay on Climate Change"}
               required
             />
           </div>
@@ -139,13 +172,13 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
               id="description"
               value={description}
               onChange={(e) => setDescription(capitalizeFirstLetter(e.target.value))}
-              placeholder="Assignment details"
+              placeholder={type === 'exam' ? "Topics covered, chapters, etc." : "Assignment details"}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="due-date">Due Date *</Label>
+            <Label htmlFor="due-date">{type === 'exam' ? 'Exam Date *' : 'Due Date *'}</Label>
             <Input
               id="due-date"
               type="datetime-local"
@@ -199,7 +232,7 @@ export const AssignmentForm = ({ onAssignmentAdded }: AssignmentFormProps) => {
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? "Adding..." : "Add Assignment"}
+            {isSubmitting ? "Adding..." : `Add ${type === 'exam' ? 'Exam' : 'Assignment'}`}
           </Button>
         </form>
       </DialogContent>

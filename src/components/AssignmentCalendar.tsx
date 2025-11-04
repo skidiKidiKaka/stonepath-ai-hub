@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, BookOpen, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Assignment {
@@ -11,6 +11,7 @@ interface Assignment {
   subject: string | null;
   priority: string;
   status: string;
+  type?: string;
 }
 
 interface AssignmentCalendarProps {
@@ -82,17 +83,26 @@ export const AssignmentCalendar = ({ assignments }: AssignmentCalendarProps) => 
             {selectedDate && (
               <div className="space-y-2">
                 <h3 className="font-semibold text-sm">
-                  Assignments on {selectedDate.toLocaleDateString()}
+                  Assignments & Exams on {selectedDate.toLocaleDateString()}
                 </h3>
                 {assignmentsOnSelectedDate.length > 0 ? (
                   <div className="space-y-2">
                     {assignmentsOnSelectedDate.map((assignment) => (
-                      <div key={assignment.id} className="p-2 bg-muted rounded-lg text-sm">
+                      <div key={assignment.id} className={`p-2 rounded-lg text-sm ${
+                        assignment.type === 'exam' ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-muted'
+                      }`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <div className="font-medium">{assignment.title}</div>
+                            <div className="flex items-center gap-1.5 font-medium">
+                              {assignment.type === 'exam' ? (
+                                <GraduationCap className="h-3.5 w-3.5 text-purple-500" />
+                              ) : (
+                                <BookOpen className="h-3.5 w-3.5 text-blue-500" />
+                              )}
+                              {assignment.title}
+                            </div>
                             {assignment.subject && (
-                              <div className="text-xs text-muted-foreground">{assignment.subject}</div>
+                              <div className="text-xs text-muted-foreground ml-5">{assignment.subject}</div>
                             )}
                           </div>
                           <Badge variant={priorityColors[assignment.priority as keyof typeof priorityColors]} className="text-xs">
@@ -103,37 +113,46 @@ export const AssignmentCalendar = ({ assignments }: AssignmentCalendarProps) => 
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No assignments due on this date</p>
+                  <p className="text-sm text-muted-foreground">No assignments or exams due on this date</p>
                 )}
               </div>
             )}
           </div>
 
           <div className="space-y-2">
-            <h3 className="font-semibold text-sm">Upcoming Assignments</h3>
+            <h3 className="font-semibold text-sm">Upcoming Assignments & Exams</h3>
             {upcomingAssignments.length > 0 ? (
               <div className="space-y-2">
                 {upcomingAssignments.map((assignment) => (
-                  <div key={assignment.id} className="p-3 bg-muted rounded-lg">
+                  <div key={assignment.id} className={`p-3 rounded-lg ${
+                    assignment.type === 'exam' ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-muted'
+                  }`}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div className="flex-1">
-                        <div className="font-medium text-sm">{assignment.title}</div>
+                        <div className="flex items-center gap-1.5 font-medium text-sm">
+                          {assignment.type === 'exam' ? (
+                            <GraduationCap className="h-4 w-4 text-purple-500" />
+                          ) : (
+                            <BookOpen className="h-4 w-4 text-blue-500" />
+                          )}
+                          {assignment.title}
+                        </div>
                         {assignment.subject && (
-                          <div className="text-xs text-muted-foreground">{assignment.subject}</div>
+                          <div className="text-xs text-muted-foreground ml-5">{assignment.subject}</div>
                         )}
                       </div>
                       <Badge variant={priorityColors[assignment.priority as keyof typeof priorityColors]} className="text-xs">
                         {assignment.priority}
                       </Badge>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Due: {new Date(assignment.due_date).toLocaleDateString()}
+                    <div className="text-xs text-muted-foreground ml-5">
+                      {assignment.type === 'exam' ? 'Exam' : 'Due'}: {new Date(assignment.due_date).toLocaleDateString()}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No upcoming assignments</p>
+              <p className="text-sm text-muted-foreground">No upcoming assignments or exams</p>
             )}
           </div>
         </div>
