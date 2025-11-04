@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import meditationAudio from "@/assets/meditation-music.mp3";
 import { MoodTracker } from "@/components/MoodTracker";
 import { MoodChart } from "@/components/MoodChart";
+import { format } from "date-fns";
 
 type ZodiacSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
 type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal" | null;
@@ -72,12 +73,19 @@ const MentalHealth = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [zodiacSign, setZodiacSign] = useState<ZodiacSign>(null);
   const [cyclePhase, setCyclePhase] = useState<CyclePhase>(null);
+  const [cycleTrackingEnabled, setCycleTrackingEnabled] = useState(true);
+  const [nextPeriodDate, setNextPeriodDate] = useState<Date | null>(null);
 
   useEffect(() => {
     const savedZodiac = localStorage.getItem('zodiacSign') as ZodiacSign;
     const savedCycle = localStorage.getItem('cyclePhase') as CyclePhase;
+    const savedCycleTracking = localStorage.getItem('cycleTrackingEnabled');
+    const savedPeriodDate = localStorage.getItem('nextPeriodDate');
+    
     if (savedZodiac) setZodiacSign(savedZodiac);
     if (savedCycle) setCyclePhase(savedCycle);
+    if (savedCycleTracking !== null) setCycleTrackingEnabled(savedCycleTracking === 'true');
+    if (savedPeriodDate) setNextPeriodDate(new Date(savedPeriodDate));
   }, []);
 
   const handleMoodComplete = (level: number, feelings: string[], impacts: string[], tips: string[]) => {
@@ -112,9 +120,54 @@ const MentalHealth = () => {
   const handleCycleChange = (phase: CyclePhase) => {
     setCyclePhase(phase);
     localStorage.setItem('cyclePhase', phase || '');
+    
+    // Calculate next period date based on phase
+    if (phase) {
+      const today = new Date();
+      let daysUntilPeriod = 0;
+      
+      switch(phase) {
+        case 'menstrual':
+          daysUntilPeriod = 28; // Next cycle
+          break;
+        case 'follicular':
+          daysUntilPeriod = 22; // Approx days left
+          break;
+        case 'ovulation':
+          daysUntilPeriod = 14; // Approx days left
+          break;
+        case 'luteal':
+          daysUntilPeriod = 7; // Approx days left
+          break;
+      }
+      
+      const nextDate = new Date(today);
+      nextDate.setDate(today.getDate() + daysUntilPeriod);
+      setNextPeriodDate(nextDate);
+      localStorage.setItem('nextPeriodDate', nextDate.toISOString());
+    }
+    
     toast({
       title: "Cycle Phase Updated",
       description: "Your wellness tips have been updated!",
+    });
+  };
+
+  const toggleCycleTracking = () => {
+    const newValue = !cycleTrackingEnabled;
+    setCycleTrackingEnabled(newValue);
+    localStorage.setItem('cycleTrackingEnabled', String(newValue));
+    
+    if (!newValue) {
+      setCyclePhase(null);
+      setNextPeriodDate(null);
+      localStorage.removeItem('cyclePhase');
+      localStorage.removeItem('nextPeriodDate');
+    }
+    
+    toast({
+      title: newValue ? "Cycle Tracking Enabled" : "Cycle Tracking Disabled",
+      description: newValue ? "Track your cycle for personalized wellness tips" : "Cycle tracking has been disabled",
     });
   };
 
@@ -321,44 +374,89 @@ const MentalHealth = () => {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-500" />
-                <CardTitle>Cycle Wellness</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-purple-500" />
+                  <CardTitle>Cycle Wellness</CardTitle>
+                </div>
+                <Button
+                  variant={cycleTrackingEnabled ? "destructive" : "default"}
+                  size="sm"
+                  onClick={toggleCycleTracking}
+                >
+                  {cycleTrackingEnabled ? "Disable" : "Enable"}
+                </Button>
               </div>
-              <CardDescription>Track your cycle for better mental health</CardDescription>
+              <CardDescription>
+                {cycleTrackingEnabled 
+                  ? "Track your cycle for better mental health" 
+                  : "Enable cycle tracking for personalized wellness tips"}
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <Select value={cyclePhase || ""} onValueChange={handleCycleChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select current cycle phase" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="menstrual">🩸 Menstrual (Days 1-5)</SelectItem>
-                    <SelectItem value="follicular">🌱 Follicular (Days 6-14)</SelectItem>
-                    <SelectItem value="ovulation">✨ Ovulation (Days 15-17)</SelectItem>
-                    <SelectItem value="luteal">🌙 Luteal (Days 18-28)</SelectItem>
-                  </SelectContent>
-                </Select>
-                {cyclePhase && (
-                  <div className="p-4 bg-purple-500/10 rounded-lg space-y-3">
-                    <h3 className="font-semibold">{cyclePhases[cyclePhase].phase}</h3>
-                    <p className="text-xs text-muted-foreground">{cyclePhases[cyclePhase].description}</p>
-                    <div className="pt-2 border-t border-purple-500/20">
-                      <p className="text-xs font-medium mb-2">Wellness Tips:</p>
-                      <ul className="text-sm space-y-1">
-                        {cyclePhases[cyclePhase].tips.map((tip, index) => (
-                          <li key={index}>{tip}</li>
-                        ))}
-                      </ul>
+              {cycleTrackingEnabled ? (
+                <div className="space-y-4">
+                  <Select value={cyclePhase || ""} onValueChange={handleCycleChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select current cycle phase" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="menstrual">🩸 Menstrual (Days 1-5)</SelectItem>
+                      <SelectItem value="follicular">🌱 Follicular (Days 6-14)</SelectItem>
+                      <SelectItem value="ovulation">✨ Ovulation (Days 15-17)</SelectItem>
+                      <SelectItem value="luteal">🌙 Luteal (Days 18-28)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {nextPeriodDate && cyclePhase && (
+                    <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                      <p className="text-sm font-medium text-blue-400">Next Period Estimated</p>
+                      <p className="text-lg font-bold">{format(nextPeriodDate, "MMM dd, yyyy")}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {Math.ceil((nextPeriodDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days from now
+                      </p>
                     </div>
-                    <div className="pt-2 border-t border-purple-500/20">
-                      <p className="text-xs font-medium text-muted-foreground">Mood Support:</p>
-                      <p className="text-sm italic">{cyclePhases[cyclePhase].moodSupport}</p>
+                  )}
+                  
+                  {cyclePhase && (
+                    <div className="p-4 bg-purple-500/10 rounded-lg space-y-3">
+                      <h3 className="font-semibold">{cyclePhases[cyclePhase].phase}</h3>
+                      <p className="text-xs text-muted-foreground">{cyclePhases[cyclePhase].description}</p>
+                      
+                      <div className="pt-2 border-t border-purple-500/20">
+                        <p className="text-xs font-medium mb-2">Wellness Tips:</p>
+                        <ul className="text-sm space-y-1">
+                          {cyclePhases[cyclePhase].tips.map((tip, index) => (
+                            <li key={index}>{tip}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      
+                      <div className="pt-2 border-t border-purple-500/20">
+                        <p className="text-xs font-medium text-muted-foreground">Mood Support:</p>
+                        <p className="text-sm italic">{cyclePhases[cyclePhase].moodSupport}</p>
+                      </div>
+                      
+                      {cyclePhase === 'luteal' && (
+                        <div className="pt-2 border-t border-purple-500/20">
+                          <p className="text-xs font-medium mb-2 text-yellow-400">PMS Management:</p>
+                          <ul className="text-sm space-y-1">
+                            <li>• Consider magnesium-rich foods</li>
+                            <li>• Practice stress-relief techniques</li>
+                            <li>• Get adequate sleep (7-9 hours)</li>
+                            <li>• Stay hydrated throughout the day</li>
+                          </ul>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>Cycle tracking is currently disabled</p>
+                  <p className="text-sm mt-2">Enable it to track your menstrual cycle and receive personalized wellness tips</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

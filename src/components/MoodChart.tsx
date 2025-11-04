@@ -107,11 +107,11 @@ export const MoodChart = () => {
     <div className="space-y-4">
       <Card className="p-6 bg-gradient-to-br from-purple-900/20 to-blue-900/20 border-purple-500/20">
         <div className="text-center space-y-2">
-          <h3 className="text-lg font-semibold text-slate-300">Wellness Score</h3>
+          <h3 className="text-lg font-semibold text-foreground">Wellness Score</h3>
           <div className={`text-5xl font-bold ${getScoreColor(wellnessScore)}`}>
             {wellnessScore}
           </div>
-          <p className="text-slate-400">{getScoreLabel(wellnessScore)}</p>
+          <p className="text-muted-foreground">{getScoreLabel(wellnessScore)}</p>
         </div>
       </Card>
 
