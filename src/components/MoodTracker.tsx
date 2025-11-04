@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type MoodLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -171,37 +170,28 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-8">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-4 top-4 text-slate-400 hover:text-white"
-          onClick={handleClose}
-        >
-          <X className="h-5 w-5" />
-        </Button>
-
+      <DialogContent className="max-w-xl max-h-[85vh] bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-6">
         {step === "slider" && (
-          <div className="space-y-8">
-            <div className="text-center space-y-4">
-              <h2 className="text-xl font-semibold text-slate-300">Mood</h2>
-              <h3 className="text-2xl font-bold">Choose how you felt overall that day</h3>
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <h2 className="text-lg font-semibold text-slate-300">Mood</h2>
+              <h3 className="text-xl font-bold">Choose how you felt overall that day</h3>
             </div>
 
-            <div className="flex justify-center py-8">
+            <div className="flex justify-center py-4">
               <div 
-                className={`w-48 h-48 rounded-full bg-gradient-to-br ${getFlowerColor()} transition-all duration-500 flex items-center justify-center`}
+                className={`w-32 h-32 rounded-full bg-gradient-to-br ${getFlowerColor()} transition-all duration-500 flex items-center justify-center`}
                 style={{ transform: `scale(${getFlowerScale()})` }}
               >
-                <div className="text-6xl animate-pulse">🌸</div>
+                <div className="text-5xl animate-pulse">🌸</div>
               </div>
             </div>
 
             <div className="text-center">
-              <h4 className="text-2xl font-bold mb-4">{moodLabels[moodLevel]}</h4>
+              <h4 className="text-xl font-bold mb-2">{moodLabels[moodLevel]}</h4>
             </div>
 
-            <div className="space-y-4 px-4">
+            <div className="space-y-3 px-4">
               <Slider
                 value={[moodLevel]}
                 onValueChange={handleSliderChange}
@@ -217,7 +207,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
 
             <Button 
               onClick={handleNext} 
-              className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
+              className="w-full py-5 text-base bg-purple-600 hover:bg-purple-700"
             >
               Next
             </Button>
@@ -225,20 +215,20 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         )}
 
         {step === "feelings" && (
-          <div className="space-y-6">
-            <div className="text-center space-y-4">
-              <div className="text-4xl">🌸</div>
-              <h3 className="text-2xl font-bold">{moodLabels[moodLevel]}</h3>
-              <p className="text-lg text-slate-300">What best describes this feeling?</p>
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <div className="text-3xl">🌸</div>
+              <h3 className="text-xl font-bold">{moodLabels[moodLevel]}</h3>
+              <p className="text-base text-slate-300">What best describes this feeling?</p>
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center max-h-96 overflow-y-auto p-4">
+            <div className="flex flex-wrap gap-2 justify-center max-h-60 overflow-y-auto p-2">
               {feelingsByMood[moodLevel].map((feeling) => (
                 <Button
                   key={feeling}
                   variant={selectedFeelings.includes(feeling) ? "default" : "outline"}
                   onClick={() => toggleFeeling(feeling)}
-                  className={`rounded-full ${
+                  className={`rounded-full text-sm py-1 px-3 ${
                     selectedFeelings.includes(feeling)
                       ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
                       : "bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600"
@@ -251,7 +241,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
 
             <Button 
               onClick={handleNext} 
-              className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
+              className="w-full py-5 text-base bg-purple-600 hover:bg-purple-700"
             >
               Next
             </Button>
@@ -259,25 +249,25 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         )}
 
         {step === "impact" && (
-          <div className="space-y-6">
-            <div className="text-center space-y-4">
-              <div className="text-4xl">🌸</div>
-              <h3 className="text-2xl font-bold">{moodLabels[moodLevel]}</h3>
-              <p className="text-lg text-slate-300">
+          <div className="space-y-4">
+            <div className="text-center space-y-2">
+              <div className="text-3xl">🌸</div>
+              <h3 className="text-xl font-bold">{moodLabels[moodLevel]}</h3>
+              <p className="text-sm text-slate-300">
                 {selectedFeelings.join(", ")}
               </p>
-              <p className="text-lg text-slate-300 font-semibold mt-4">
+              <p className="text-base text-slate-300 font-semibold mt-2">
                 What's having the biggest impact on you?
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center max-h-96 overflow-y-auto p-4">
+            <div className="flex flex-wrap gap-2 justify-center max-h-52 overflow-y-auto p-2">
               {impactFactors.map((impact) => (
                 <Button
                   key={impact}
                   variant={selectedImpacts.includes(impact) ? "default" : "outline"}
                   onClick={() => toggleImpact(impact)}
-                  className={`rounded-full ${
+                  className={`rounded-full text-sm py-1 px-3 ${
                     selectedImpacts.includes(impact)
                       ? "bg-slate-100 text-slate-900 hover:bg-slate-200"
                       : "bg-slate-700 text-slate-200 hover:bg-slate-600 border-slate-600"
@@ -290,7 +280,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
 
             <Button 
               onClick={handleNext} 
-              className="w-full py-6 text-lg bg-purple-600 hover:bg-purple-700"
+              className="w-full py-5 text-base bg-purple-600 hover:bg-purple-700"
             >
               Done
             </Button>
