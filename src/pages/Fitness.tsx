@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, Activity, Target, Flame, Plus, ChefHat, TrendingUp, Sparkles, Calendar } from "lucide-react";
+import { ArrowLeft, Heart, Activity, Target, Flame, Plus, ChefHat, TrendingUp, Sparkles, Calendar, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -38,6 +38,16 @@ const Fitness = () => {
   const [duration, setDuration] = useState("");
   const [intensity, setIntensity] = useState("");
   const [notes, setNotes] = useState("");
+
+  // AI Recipe state
+  const [isAiRecipeOpen, setIsAiRecipeOpen] = useState(false);
+  const [isGeneratingRecipe, setIsGeneratingRecipe] = useState(false);
+  const [aiRecipe, setAiRecipe] = useState<any>(null);
+  const [recipeDietary, setRecipeDietary] = useState("");
+  const [recipeCuisine, setRecipeCuisine] = useState("");
+  const [recipePrepTime, setRecipePrepTime] = useState("");
+  const [recipeCalories, setRecipeCalories] = useState("");
+  const [recipeAllergies, setRecipeAllergies] = useState("");
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -275,6 +285,49 @@ const Fitness = () => {
     };
   }, [workoutLogs]);
 
+  const handleGenerateAiRecipe = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to generate AI recipes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGeneratingRecipe(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+        body: {
+          dietary: recipeDietary,
+          cuisine: recipeCuisine,
+          prepTime: recipePrepTime,
+          calories: recipeCalories,
+          allergies: recipeAllergies,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.recipe) {
+        setAiRecipe(data.recipe);
+        toast({
+          title: "Recipe Generated! 🍳",
+          description: "Check out your personalized healthy recipe!",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error generating recipe:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate recipe. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingRecipe(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-red-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -486,38 +539,229 @@ const Fitness = () => {
               <CardDescription>Quick and nutritious meal ideas</CardDescription>
             </CardHeader>
             <CardContent>
-              <Dialog open={isRecipeOpen} onOpenChange={setIsRecipeOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full">
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Get Random Recipe
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>{randomRecipe.name}</DialogTitle>
-                    <DialogDescription>
-                      A healthy and delicious meal option
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold mb-2">Ingredients:</h4>
-                      <p className="text-sm text-muted-foreground">{randomRecipe.ingredients}</p>
-                    </div>
-                    <div className="flex justify-between text-sm">
+              <div className="flex gap-2">
+                <Dialog open={isRecipeOpen} onOpenChange={setIsRecipeOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="flex-1">
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Random Recipe
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>{randomRecipe.name}</DialogTitle>
+                      <DialogDescription>
+                        A healthy and delicious meal option
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
                       <div>
-                        <div className="font-semibold">Prep Time</div>
-                        <div className="text-muted-foreground">{randomRecipe.prep}</div>
+                        <h4 className="font-semibold mb-2">Ingredients:</h4>
+                        <p className="text-sm text-muted-foreground">{randomRecipe.ingredients}</p>
                       </div>
-                      <div>
-                        <div className="font-semibold">Calories</div>
-                        <div className="text-muted-foreground">~{randomRecipe.calories}</div>
+                      <div className="flex justify-between text-sm">
+                        <div>
+                          <div className="font-semibold">Prep Time</div>
+                          <div className="text-muted-foreground">{randomRecipe.prep}</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold">Calories</div>
+                          <div className="text-muted-foreground">~{randomRecipe.calories}</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+
+                <Dialog open={isAiRecipeOpen} onOpenChange={setIsAiRecipeOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="flex-1">
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      AI Recipe
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle>Generate AI-Powered Recipe</DialogTitle>
+                      <DialogDescription>
+                        Get a personalized healthy recipe based on your preferences
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    {!aiRecipe ? (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Dietary Preferences</Label>
+                          <Select value={recipeDietary} onValueChange={setRecipeDietary}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select dietary preference (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No restrictions</SelectItem>
+                              <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                              <SelectItem value="vegan">Vegan</SelectItem>
+                              <SelectItem value="keto">Keto</SelectItem>
+                              <SelectItem value="paleo">Paleo</SelectItem>
+                              <SelectItem value="gluten-free">Gluten-Free</SelectItem>
+                              <SelectItem value="dairy-free">Dairy-Free</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Cuisine Type</Label>
+                          <Select value={recipeCuisine} onValueChange={setRecipeCuisine}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select cuisine (optional)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="any">Any</SelectItem>
+                              <SelectItem value="mediterranean">Mediterranean</SelectItem>
+                              <SelectItem value="asian">Asian</SelectItem>
+                              <SelectItem value="mexican">Mexican</SelectItem>
+                              <SelectItem value="italian">Italian</SelectItem>
+                              <SelectItem value="american">American</SelectItem>
+                              <SelectItem value="indian">Indian</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Prep Time Preference</Label>
+                          <Select value={recipePrepTime} onValueChange={setRecipePrepTime}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="How long do you want to cook?" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="quick">Quick (15 min or less)</SelectItem>
+                              <SelectItem value="moderate">Moderate (30 min)</SelectItem>
+                              <SelectItem value="elaborate">Elaborate (60+ min)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Target Calories per Serving</Label>
+                          <Input
+                            type="text"
+                            placeholder="e.g., 400-600"
+                            value={recipeCalories}
+                            onChange={(e) => setRecipeCalories(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Allergies / Ingredients to Avoid (Optional)</Label>
+                          <Textarea
+                            placeholder="e.g., nuts, shellfish, soy"
+                            value={recipeAllergies}
+                            onChange={(e) => setRecipeAllergies(e.target.value)}
+                            className="min-h-[60px]"
+                          />
+                        </div>
+
+                        <Button 
+                          onClick={handleGenerateAiRecipe}
+                          disabled={isGeneratingRecipe}
+                          className="w-full"
+                        >
+                          {isGeneratingRecipe ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Generating Recipe...
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-4 h-4 mr-2" />
+                              Generate Recipe
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                          <h3 className="text-2xl font-bold mb-2">{aiRecipe.name}</h3>
+                          <p className="text-muted-foreground">{aiRecipe.description}</p>
+                          <div className="flex gap-4 mt-3 text-sm">
+                            <Badge variant="secondary">⏱️ Prep: {aiRecipe.prepTime}</Badge>
+                            <Badge variant="secondary">🍳 Cook: {aiRecipe.cookTime}</Badge>
+                            <Badge variant="secondary">🍽️ Serves: {aiRecipe.servings}</Badge>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-lg mb-2">📊 Nutrition (per serving)</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="p-2 bg-muted rounded">
+                              <span className="font-medium">Calories:</span> {aiRecipe.nutrition.calories}
+                            </div>
+                            <div className="p-2 bg-muted rounded">
+                              <span className="font-medium">Protein:</span> {aiRecipe.nutrition.protein}
+                            </div>
+                            <div className="p-2 bg-muted rounded">
+                              <span className="font-medium">Carbs:</span> {aiRecipe.nutrition.carbs}
+                            </div>
+                            <div className="p-2 bg-muted rounded">
+                              <span className="font-medium">Fats:</span> {aiRecipe.nutrition.fats}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-lg mb-2">🥗 Ingredients</h4>
+                          <ul className="space-y-1 text-sm">
+                            {aiRecipe.ingredients.map((ingredient: string, idx: number) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="mr-2">•</span>
+                                <span>{ingredient}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-lg mb-2">👨‍🍳 Instructions</h4>
+                          <ol className="space-y-2 text-sm">
+                            {aiRecipe.instructions.map((instruction: string, idx: number) => (
+                              <li key={idx} className="flex items-start">
+                                <span className="font-semibold mr-2 text-red-500">{idx + 1}.</span>
+                                <span>{instruction}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+
+                        <div className="flex gap-2">
+                          <Button 
+                            onClick={() => {
+                              setAiRecipe(null);
+                              setRecipeDietary("");
+                              setRecipeCuisine("");
+                              setRecipePrepTime("");
+                              setRecipeCalories("");
+                              setRecipeAllergies("");
+                            }}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            Generate Another
+                          </Button>
+                          <Button 
+                            onClick={() => {
+                              setIsAiRecipeOpen(false);
+                              setAiRecipe(null);
+                            }}
+                            className="flex-1"
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              </div>
 
               <div className="mt-4 space-y-2">
                 <h4 className="text-sm font-medium mb-2">Recipe Ideas:</h4>
