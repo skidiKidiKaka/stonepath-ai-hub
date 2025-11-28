@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, Settings, Sparkles } from "lucide-react";
+import { Bot, Send, Settings, Sparkles, Paperclip, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -15,7 +15,14 @@ import {
 
 interface Message {
   role: "user" | "assistant";
-  content: string;
+  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+}
+
+interface UploadedFile {
+  name: string;
+  type: string;
+  data: string;
+  preview?: string;
 }
 
 interface AiChatDialogProps {
@@ -29,7 +36,9 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [provider, setProvider] = useState<"lovable" | "deepseek">("lovable");
   const [showSettings, setShowSettings] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -115,15 +124,103 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
     }
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newFiles: UploadedFile[] = [];
+
+    for (const file of Array.from(files)) {
+      if (file.size > 20 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 20MB limit`,
+          variant: "destructive",
+        });
+        continue;
+      }
+
+      try {
+        const data = await readFileAsDataURL(file);
+        const uploadedFile: UploadedFile = {
+          name: file.name,
+          type: file.type,
+          data,
+        };
+
+        if (file.type.startsWith("image/")) {
+          uploadedFile.preview = data;
+        }
+
+        newFiles.push(uploadedFile);
+      } catch (error) {
+        toast({
+          title: "Error reading file",
+          description: `Failed to read ${file.name}`,
+          variant: "destructive",
+        });
+      }
+    }
+
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const readFileAsDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
 
     const userMessage = input.trim();
+    const files = [...uploadedFiles];
+    
     setInput("");
-    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
+    setUploadedFiles([]);
+
+    let messageContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+
+    if (files.length > 0) {
+      const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
+      
+      if (userMessage) {
+        contentParts.push({ type: "text", text: userMessage });
+      }
+
+      for (const file of files) {
+        if (file.type.startsWith("image/")) {
+          contentParts.push({
+            type: "image_url",
+            image_url: { url: file.data },
+          });
+        } else if (file.type.startsWith("text/")) {
+          const textContent = atob(file.data.split(",")[1]);
+          contentParts.push({
+            type: "text",
+            text: `Content of ${file.name}:\n${textContent}`,
+          });
+        }
+      }
+
+      messageContent = contentParts;
+    } else {
+      messageContent = userMessage;
+    }
+
+    setMessages(prev => [...prev, { role: "user", content: messageContent }]);
     setIsLoading(true);
 
-    await streamChat(userMessage);
+    await streamChat(userMessage || "Analyze the uploaded file(s)");
     setIsLoading(false);
   };
 
@@ -198,7 +295,24 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
                         : "bg-muted"
                     }`}
                   >
-                    {msg.content}
+                    {typeof msg.content === "string" ? (
+                      msg.content
+                    ) : (
+                      <div className="space-y-2">
+                        {msg.content.map((part, partIdx) => (
+                          <div key={partIdx}>
+                            {part.type === "text" && <p>{part.text}</p>}
+                            {part.type === "image_url" && part.image_url && (
+                              <img
+                                src={part.image_url.url}
+                                alt="Uploaded"
+                                className="max-w-full rounded"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -206,17 +320,70 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
           </div>
         </ScrollArea>
 
-        <div className="flex gap-2 pt-4 border-t">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            disabled={isLoading}
-          />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
+        <div className="pt-4 border-t space-y-2">
+          {uploadedFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {uploadedFiles.map((file, idx) => (
+                <div
+                  key={idx}
+                  className="relative flex items-center gap-2 bg-muted rounded-lg p-2 pr-8"
+                >
+                  {file.preview && (
+                    <img
+                      src={file.preview}
+                      alt={file.name}
+                      className="h-10 w-10 object-cover rounded"
+                    />
+                  )}
+                  <span className="text-sm truncate max-w-[150px]">{file.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-6 w-6"
+                    onClick={() => removeFile(idx)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              multiple
+              accept="image/*,text/*"
+              onChange={handleFileSelect}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="Type your message..."
+              disabled={isLoading}
+              className="min-h-[60px] resize-none"
+              rows={2}
+            />
+            <Button onClick={handleSend} disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
