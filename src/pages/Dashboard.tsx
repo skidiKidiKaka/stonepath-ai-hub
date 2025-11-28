@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { AiChatDialog } from "@/components/AiChatDialog";
 
 const pillars = [
   { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
@@ -45,6 +46,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
+  const [aiChatOpen, setAiChatOpen] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -157,10 +159,12 @@ const Dashboard = () => {
         variant="gradient"
         size="icon"
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl hover:scale-110 transition-transform"
-        onClick={() => toast.info("AI Assistant coming soon!")}
+        onClick={() => setAiChatOpen(true)}
       >
         <MessageSquare className="w-6 h-6" />
       </Button>
+
+      <AiChatDialog open={aiChatOpen} onOpenChange={setAiChatOpen} />
     </div>
   );
 };
