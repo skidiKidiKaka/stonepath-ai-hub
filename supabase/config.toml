@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.ai-chat]
 verify_jwt = false
+
+[functions.generate-quiz]
+verify_jwt = false
+
+[functions.generate-quiz-image]
+verify_jwt = false
