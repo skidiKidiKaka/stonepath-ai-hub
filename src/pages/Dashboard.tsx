@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { AiChatDialog } from "@/components/AiChatDialog";
+import { NewsCarousel } from "@/components/NewsCarousel";
 
 const pillars = [
   { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
@@ -130,6 +131,9 @@ const Dashboard = () => {
             </p>
           </div>
         </Card>
+
+        {/* News Carousel */}
+        <NewsCarousel />
 
         {/* Pillars Grid */}
         <div>
