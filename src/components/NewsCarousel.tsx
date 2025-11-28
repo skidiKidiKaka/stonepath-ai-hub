@@ -35,7 +35,10 @@ export const NewsCarousel = () => {
         body: { provider: 'lovable' }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching news:', error);
+        throw new Error(error.message || 'Failed to generate news');
+      }
 
       const newsItems = data.news || [];
       setNews(newsItems);
@@ -46,7 +49,10 @@ export const NewsCarousel = () => {
       });
     } catch (error) {
       console.error('Error fetching news:', error);
-      toast.error('Failed to load news');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load news';
+      toast.error(errorMessage === 'AI API error: 503' 
+        ? 'News service temporarily unavailable. Please try refreshing in a moment.' 
+        : 'Failed to load news. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -29,11 +29,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a news curator for high school students. Generate 5 engaging, relevant news items that would interest teenagers. Each news item should have a catchy title, brief summary, detailed content, category, and a description for an image that represents the story.'
+            content: 'You are a news curator for high school students. Generate 3 engaging, relevant news items that would interest teenagers. Each news item should have a catchy title, brief summary, detailed content, category, and a description for an image that represents the story.'
           },
           {
             role: 'user',
-            content: 'Generate 5 current news items relevant to high school students. Include topics like technology, science, education, entertainment, sports, and social trends. Make them engaging and age-appropriate.'
+            content: 'Generate 3 current news items relevant to high school students. Include topics like technology, science, education, entertainment, sports, and social trends. Make them engaging and age-appropriate.'
           }
         ],
         tools: [
@@ -80,11 +80,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a news curator for high school students. Generate 5 engaging, relevant news items that would interest teenagers. Each news item should have a catchy title, brief summary, detailed content, category, and a description for an image that represents the story.'
+            content: 'You are a news curator for high school students. Generate 3 engaging, relevant news items that would interest teenagers. Each news item should have a catchy title, brief summary, detailed content, category, and a description for an image that represents the story.'
           },
           {
             role: 'user',
-            content: 'Generate 5 current news items relevant to high school students. Include topics like technology, science, education, entertainment, sports, and social trends. Make them engaging and age-appropriate.'
+            content: 'Generate 3 current news items relevant to high school students. Include topics like technology, science, education, entertainment, sports, and social trends. Make them engaging and age-appropriate.'
           }
         ],
         tools: [
@@ -124,34 +124,71 @@ serve(async (req) => {
 
     console.log(`Generating news with ${provider}`);
     
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
+    // Retry logic with exponential backoff
+    let lastError;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+        
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal,
+        });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI API error:', response.status, errorText);
-      throw new Error(`AI API error: ${response.status}`);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`AI API error (attempt ${attempt + 1}):`, response.status, errorText);
+          
+          // Retry on 503 errors
+          if (response.status === 503 && attempt < 2) {
+            const delay = Math.pow(2, attempt) * 1000; // Exponential backoff: 1s, 2s
+            console.log(`Retrying in ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw new Error(`AI API error: ${response.status}`);
+        }
+
+        // Success - parse and return
+        const data = await response.json();
+        console.log('AI response received successfully');
+
+        const toolCall = data.choices[0].message.tool_calls?.[0];
+        if (!toolCall) {
+          throw new Error('No tool call in response');
+        }
+
+        const newsData = JSON.parse(toolCall.function.arguments);
+        
+        return new Response(JSON.stringify(newsData), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+
+      } catch (error) {
+        lastError = error;
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error(`Request timeout (attempt ${attempt + 1})`);
+          if (attempt < 2) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+        }
+        // If it's not a retryable error, throw immediately
+        if (attempt === 2) throw error;
+      }
     }
-
-    const data = await response.json();
-    console.log('AI response received');
-
-    const toolCall = data.choices[0].message.tool_calls?.[0];
-    if (!toolCall) {
-      throw new Error('No tool call in response');
-    }
-
-    const newsData = JSON.parse(toolCall.function.arguments);
     
-    return new Response(JSON.stringify(newsData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    throw lastError;
+
 
   } catch (error) {
     console.error('Error in generate-news function:', error);
