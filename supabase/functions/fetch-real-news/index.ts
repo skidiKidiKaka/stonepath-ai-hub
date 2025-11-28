@@ -17,35 +17,61 @@ serve(async (req) => {
       throw new Error('NEWS_API_KEY not configured');
     }
 
-    // Fetch top headlines for student-relevant categories
-    const categories = ['technology', 'science', 'health', 'entertainment', 'sports'];
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+    const body = await req.json().catch(() => ({}));
+    const { page = 1 } = body;
     
-    console.log(`Fetching news from category: ${randomCategory}`);
+    // Student-relevant categories
+    const categories = ['technology', 'science', 'health', 'entertainment', 'sports', 'business'];
     
-    const newsApiUrl = `https://newsapi.org/v2/top-headlines?country=us&category=${randomCategory}&pageSize=5&apiKey=${NEWS_API_KEY}`;
+    console.log(`Fetching news for page ${page}`);
     
-    const response = await fetch(newsApiUrl);
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('NewsAPI error:', response.status, errorText);
-      throw new Error(`NewsAPI error: ${response.status}`);
-    }
+    // Fetch from multiple categories to get diverse content
+    const fetchPromises = categories.map(category => 
+      fetch(`https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=2&apiKey=${NEWS_API_KEY}`)
+        .then(res => res.json())
+        .then(data => ({
+          category,
+          articles: data.articles || []
+        }))
+        .catch(err => {
+          console.error(`Error fetching ${category}:`, err);
+          return { category, articles: [] };
+        })
+    );
 
-    const data = await response.json();
-    console.log(`Fetched ${data.articles?.length || 0} articles`);
+    const results = await Promise.all(fetchPromises);
     
-    if (!data.articles || data.articles.length === 0) {
+    // Combine and shuffle articles from all categories
+    let allArticles: any[] = [];
+    results.forEach(result => {
+      const articlesWithCategory = result.articles.map((article: any) => ({
+        ...article,
+        categoryLabel: result.category.charAt(0).toUpperCase() + result.category.slice(1)
+      }));
+      allArticles = allArticles.concat(articlesWithCategory);
+    });
+    
+    // Shuffle array for variety
+    allArticles.sort(() => Math.random() - 0.5);
+    
+    console.log(`Fetched ${allArticles.length} total articles`);
+    
+    if (allArticles.length === 0) {
       throw new Error('No articles found');
     }
 
+    // Paginate: 7 articles per page
+    const articlesPerPage = 7;
+    const startIndex = (page - 1) * articlesPerPage;
+    const endIndex = startIndex + articlesPerPage;
+    const paginatedArticles = allArticles.slice(startIndex, endIndex);
+
     // Transform news articles to match our format
-    const newsItems = data.articles.slice(0, 3).map((article: any) => ({
+    const newsItems = paginatedArticles.map((article: any) => ({
       title: article.title,
       summary: article.description || article.title,
       content: article.content || article.description || 'Read more at the source.',
-      category: randomCategory.charAt(0).toUpperCase() + randomCategory.slice(1),
+      category: article.categoryLabel,
       imageUrl: article.urlToImage || null,
       sourceUrl: article.url,
       publishedAt: article.publishedAt,
@@ -53,7 +79,10 @@ serve(async (req) => {
     }));
 
     return new Response(
-      JSON.stringify({ news: newsItems }),
+      JSON.stringify({ 
+        news: newsItems,
+        hasMore: allArticles.length > endIndex
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
