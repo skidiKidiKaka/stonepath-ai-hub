@@ -40,8 +40,8 @@ export const NewsCarousel = () => {
       const newsItems = data.news || [];
       setNews(newsItems);
 
-      // Generate images for each news item
-      newsItems.forEach((item: NewsItem, index: number) => {
+      // Generate images only for first 2 news items to speed up loading
+      newsItems.slice(0, 2).forEach((item: NewsItem, index: number) => {
         generateNewsImage(item.imagePrompt, index);
       });
     } catch (error) {

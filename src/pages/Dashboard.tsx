@@ -132,9 +132,6 @@ const Dashboard = () => {
           </div>
         </Card>
 
-        {/* News Carousel */}
-        <NewsCarousel />
-
         {/* Pillars Grid */}
         <div>
           <h2 className="text-2xl font-bold mb-6">Your Support Pillars</h2>
@@ -156,6 +153,9 @@ const Dashboard = () => {
             })}
           </div>
         </div>
+
+        {/* News Carousel */}
+        <NewsCarousel />
       </main>
 
       {/* Floating AI Assistant */}
