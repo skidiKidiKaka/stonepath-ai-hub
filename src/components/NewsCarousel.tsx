@@ -14,15 +14,16 @@ interface NewsItem {
   summary: string;
   content: string;
   category: string;
-  imagePrompt: string;
   imageUrl?: string;
+  sourceUrl?: string;
+  publishedAt?: string;
+  source?: string;
 }
 
 export const NewsCarousel = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
-  const [imageLoading, setImageLoading] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     fetchNews();
@@ -31,54 +32,24 @@ export const NewsCarousel = () => {
   const fetchNews = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.functions.invoke('generate-news', {
-        body: { provider: 'lovable' }
-      });
+      const { data, error } = await supabase.functions.invoke('fetch-real-news');
 
       if (error) {
         console.error('Error fetching news:', error);
-        throw new Error(error.message || 'Failed to generate news');
+        throw new Error(error.message || 'Failed to fetch news');
       }
 
       const newsItems = data.news || [];
       setNews(newsItems);
-
-      // Generate images only for first 2 news items to speed up loading
-      newsItems.slice(0, 2).forEach((item: NewsItem, index: number) => {
-        generateNewsImage(item.imagePrompt, index);
-      });
     } catch (error) {
       console.error('Error fetching news:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load news';
-      toast.error(errorMessage === 'AI API error: 503' 
-        ? 'News service temporarily unavailable. Please try refreshing in a moment.' 
-        : 'Failed to load news. Please try again.');
+      toast.error('Failed to load news. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const generateNewsImage = async (prompt: string, index: number) => {
-    try {
-      setImageLoading(prev => ({ ...prev, [index]: true }));
-      
-      const { data, error } = await supabase.functions.invoke('generate-quiz-image', {
-        body: { prompt }
-      });
-
-      if (error) throw error;
-
-      if (data?.imageUrl) {
-        setNews(prev => prev.map((item, i) => 
-          i === index ? { ...item, imageUrl: data.imageUrl } : item
-        ));
-      }
-    } catch (error) {
-      console.error('Error generating image:', error);
-    } finally {
-      setImageLoading(prev => ({ ...prev, [index]: false }));
-    }
-  };
 
   if (loading) {
     return (
@@ -116,21 +87,20 @@ export const NewsCarousel = () => {
                 onClick={() => setSelectedNews(item)}
               >
                 <div className="relative h-48 overflow-hidden bg-gradient-to-br from-primary/10 to-secondary/10">
-                  {imageLoading[index] ? (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Skeleton className="w-full h-full" />
-                    </div>
-                  ) : item.imageUrl ? (
+                  {item.imageUrl ? (
                     <img 
                       src={item.imageUrl} 
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.parentElement?.querySelector('.fallback-icon')?.classList.remove('hidden');
+                      }}
                     />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Newspaper className="w-16 h-16 text-muted-foreground/30" />
-                    </div>
-                  )}
+                  ) : null}
+                  <div className="w-full h-full flex items-center justify-center fallback-icon" style={{ display: item.imageUrl ? 'none' : 'flex' }}>
+                    <Newspaper className="w-16 h-16 text-muted-foreground/30" />
+                  </div>
                   <div className="absolute top-3 right-3">
                     <Badge className="bg-card/90 backdrop-blur-sm text-card-foreground border">
                       {item.category}
@@ -141,9 +111,14 @@ export const NewsCarousel = () => {
                   <h3 className="font-bold text-lg mb-2 line-clamp-2 text-foreground">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
                     {item.summary}
                   </p>
+                  {item.source && (
+                    <p className="text-xs text-muted-foreground/70">
+                      {item.source}
+                    </p>
+                  )}
                 </div>
               </Card>
             ))}
