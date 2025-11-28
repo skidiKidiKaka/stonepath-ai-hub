@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -23,16 +23,35 @@ interface NewsItem {
 export const NewsCarousel = () => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetchNews();
+    fetchNews(1);
   }, []);
 
-  const fetchNews = async () => {
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, hasMore, page]);
+
+  const fetchNews = async (pageNum: number, append: boolean = false) => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase.functions.invoke('fetch-real-news');
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      const { data, error } = await supabase.functions.invoke('fetch-real-news', {
+        body: { page: pageNum }
+      });
 
       if (error) {
         console.error('Error fetching news:', error);
@@ -40,13 +59,42 @@ export const NewsCarousel = () => {
       }
 
       const newsItems = data.news || [];
-      setNews(newsItems);
+      setHasMore(data.hasMore || false);
+      
+      if (append) {
+        setNews(prev => [...prev, ...newsItems]);
+      } else {
+        setNews(newsItems);
+      }
     } catch (error) {
       console.error('Error fetching news:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load news';
       toast.error('Failed to load news. Please try again.');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreNews = () => {
+    if (!loadingMore && hasMore) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchNews(nextPage, true);
+    }
+  };
+
+  const handleScroll = () => {
+    if (!scrollContainerRef.current || loadingMore || !hasMore) return;
+    
+    const container = scrollContainerRef.current;
+    const scrollLeft = container.scrollLeft;
+    const scrollWidth = container.scrollWidth;
+    const clientWidth = container.clientWidth;
+    
+    // Load more when user is near the end (90% scrolled)
+    if (scrollLeft + clientWidth >= scrollWidth * 0.9) {
+      loadMoreNews();
     }
   };
 
@@ -58,7 +106,7 @@ export const NewsCarousel = () => {
           <Newspaper className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">Student News</h2>
         </div>
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="w-full whitespace-nowrap" ref={scrollContainerRef}>
           <div className="flex gap-4 pb-4">
             {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-48 w-80 rounded-2xl flex-shrink-0" />
@@ -78,7 +126,7 @@ export const NewsCarousel = () => {
           <h2 className="text-lg font-semibold">Student News</h2>
         </div>
         
-        <ScrollArea className="w-full whitespace-nowrap">
+        <ScrollArea className="w-full whitespace-nowrap" ref={scrollContainerRef}>
           <div className="flex gap-4 pb-4">
             {news.map((item, index) => (
               <Card
@@ -122,6 +170,14 @@ export const NewsCarousel = () => {
                 </div>
               </Card>
             ))}
+            {loadingMore && (
+              <Card className="w-80 flex-shrink-0 h-72 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+                  <p className="text-sm text-muted-foreground">Loading more news...</p>
+                </div>
+              </Card>
+            )}
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
