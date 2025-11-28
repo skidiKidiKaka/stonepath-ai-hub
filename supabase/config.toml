@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-news]
 verify_jwt = false
+
+[functions.fetch-real-news]
+verify_jwt = false
