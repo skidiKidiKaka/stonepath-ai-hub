@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
+import { QuizGame } from "@/components/QuizGame";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -351,6 +352,8 @@ const Career = () => {
             </CardContent>
           </Card>
         </div>
+
+        <QuizGame />
 
         {!quizCompleted ? (
           <Card>
