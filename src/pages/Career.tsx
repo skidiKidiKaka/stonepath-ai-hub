@@ -531,9 +531,22 @@ const Career = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <h3 className="text-lg font-semibold">{quizQuestions[currentQuestion].question}</h3>
-                <Progress value={(currentQuestion / quizQuestions.length) * 100} className="h-2" />
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="font-medium text-orange-500">Progress</span>
+                    <span className="font-semibold text-foreground">
+                      {currentQuestion + 1} / {quizQuestions.length}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Progress 
+                      value={((currentQuestion + 1) / quizQuestions.length) * 100} 
+                      className="h-3 bg-gradient-to-r from-orange-500/10 via-orange-500/20 to-orange-600/10 border border-orange-500/20 shadow-sm" 
+                    />
+                  </div>
+                </div>
               </div>
               <div className="grid gap-3">
                 {quizQuestions[currentQuestion].options.map((option, index) => (
