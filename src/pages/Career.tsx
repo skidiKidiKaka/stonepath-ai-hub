@@ -543,7 +543,7 @@ const Career = () => {
                   <div className="relative">
                     <Progress 
                       value={((currentQuestion + 1) / quizQuestions.length) * 100} 
-                      className="h-3 bg-gradient-to-r from-orange-500/10 via-orange-500/20 to-orange-600/10 border border-orange-500/20 shadow-sm" 
+                      className="h-3 bg-white border border-orange-500/30 shadow-sm" 
                     />
                   </div>
                 </div>
