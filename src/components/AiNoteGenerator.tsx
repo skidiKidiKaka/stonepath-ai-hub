@@ -173,20 +173,38 @@ export const AiNoteGenerator = () => {
       // Process flashcards
       if (!flashcardsRes.error && flashcardsRes.data) {
         try {
+          console.log('Flashcards raw response:', flashcardsRes.data.content?.substring(0, 200));
           const parsed = JSON.parse(flashcardsRes.data.content);
-          setFlashcards(parsed);
-        } catch {
+          console.log('Parsed flashcards:', parsed);
+          setFlashcards(Array.isArray(parsed) ? parsed : []);
+        } catch (error) {
+          console.error('Failed to parse flashcards:', error);
+          console.error('Flashcards content:', flashcardsRes.data.content);
           setFlashcards([]);
+          toast({
+            title: "Flashcards Error",
+            description: "Failed to generate flashcards in correct format",
+            variant: "destructive",
+          });
         }
       }
 
       // Process mindmap
       if (!mindmapRes.error && mindmapRes.data) {
         try {
+          console.log('Mindmap raw response:', mindmapRes.data.content?.substring(0, 200));
           const parsed = JSON.parse(mindmapRes.data.content);
+          console.log('Parsed mindmap:', parsed);
           setMindmap(parsed);
-        } catch {
+        } catch (error) {
+          console.error('Failed to parse mindmap:', error);
+          console.error('Mindmap content:', mindmapRes.data.content);
           setMindmap(null);
+          toast({
+            title: "Mindmap Error",
+            description: "Failed to generate mindmap in correct format",
+            variant: "destructive",
+          });
         }
       }
 
