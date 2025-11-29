@@ -1,22 +1,23 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 type MoodLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 type Step = "slider" | "feelings" | "impact";
 
-const moodLabels = [
-  "Very Unpleasant",
-  "Unpleasant", 
-  "Slightly Unpleasant",
-  "Neutral",
-  "Slightly Pleasant",
-  "Pleasant",
-  "Very Pleasant"
+const moodData = [
+  { emoji: "😢", label: "Very Unpleasant", color: "from-red-500 to-red-600" },
+  { emoji: "😟", label: "Unpleasant", color: "from-orange-500 to-orange-600" },
+  { emoji: "😕", label: "Slightly Unpleasant", color: "from-yellow-500 to-yellow-600" },
+  { emoji: "😐", label: "Neutral", color: "from-slate-400 to-slate-500" },
+  { emoji: "🙂", label: "Slightly Pleasant", color: "from-blue-400 to-blue-500" },
+  { emoji: "😊", label: "Pleasant", color: "from-green-400 to-green-500" },
+  { emoji: "😄", label: "Very Pleasant", color: "from-emerald-400 to-emerald-500" }
 ];
+
+const moodLabels = moodData.map(m => m.label);
 
 const feelingsByMood = {
   0: ["Angry", "Anxious", "Scared", "Overwhelmed", "Ashamed", "Disgusted", "Embarrassed", "Frustrated", "Annoyed", "Jealous", "Stressed", "Worried", "Guilty", "Surprised", "Hopeless", "Irritated", "Lonely", "Discouraged", "Disappointed", "Drained", "Sad"],
@@ -98,10 +99,6 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
   const [selectedImpacts, setSelectedImpacts] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const handleSliderChange = (value: number[]) => {
-    setMoodLevel(value[0] as MoodLevel);
-  };
-
   const toggleFeeling = (feeling: string) => {
     setSelectedFeelings(prev => 
       prev.includes(feeling) 
@@ -180,63 +177,62 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
     onClose();
   };
 
-  const getFlowerColor = () => {
-    const colors = [
-      "from-red-900/20 to-purple-900/20", // Very Unpleasant
-      "from-red-700/30 to-purple-800/30", // Unpleasant
-      "from-orange-600/40 to-purple-700/40", // Slightly Unpleasant
-      "from-purple-500/50 to-purple-600/50", // Neutral
-      "from-purple-400/60 to-blue-500/60", // Slightly Pleasant
-      "from-blue-400/70 to-green-500/70", // Pleasant
-      "from-green-400/80 to-yellow-400/80" // Very Pleasant
-    ];
-    return colors[moodLevel];
-  };
-
-  const getFlowerScale = () => {
-    return 0.7 + (moodLevel * 0.05);
+  const handleMoodSelect = (level: MoodLevel) => {
+    setMoodLevel(level);
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-xl max-h-[85vh] bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-6">
         {step === "slider" && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="text-center space-y-2">
-              <h2 className="text-lg font-semibold text-slate-300">Mood</h2>
-              <h3 className="text-xl font-bold">Choose how you felt overall that day</h3>
+              <h2 className="text-lg font-semibold text-slate-300">Mood Check-In</h2>
+              <h3 className="text-xl font-bold">How are you feeling today?</h3>
             </div>
 
-            <div className="flex justify-center py-4">
-              <div 
-                className={`w-32 h-32 rounded-full bg-gradient-to-br ${getFlowerColor()} transition-all duration-500 flex items-center justify-center`}
-                style={{ transform: `scale(${getFlowerScale()})` }}
-              >
-                <div className="text-5xl animate-pulse">🌸</div>
-              </div>
+            <div className="grid grid-cols-4 gap-3 px-2">
+              {moodData.map((mood, index) => {
+                const level = index as MoodLevel;
+                const isSelected = moodLevel === level;
+                
+                return (
+                  <button
+                    key={level}
+                    onClick={() => handleMoodSelect(level)}
+                    className={`
+                      relative flex flex-col items-center justify-center p-4 rounded-2xl
+                      transition-all duration-300 hover:scale-105 active:scale-95
+                      ${isSelected 
+                        ? `bg-gradient-to-br ${mood.color} shadow-lg scale-105 ring-2 ring-white/50` 
+                        : 'bg-slate-700/50 hover:bg-slate-600/50'
+                      }
+                      ${index >= 4 ? 'col-start-auto' : ''}
+                    `}
+                  >
+                    <span className={`text-4xl mb-2 transition-transform duration-300 ${isSelected ? 'scale-110' : ''}`}>
+                      {mood.emoji}
+                    </span>
+                    <span className={`text-xs font-medium text-center transition-all duration-300 ${
+                      isSelected ? 'text-white' : 'text-slate-300'
+                    }`}>
+                      {mood.label}
+                    </span>
+                    {isSelected && (
+                      <div className="absolute inset-0 rounded-2xl bg-white/10 animate-pulse pointer-events-none" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div className="text-center">
-              <h4 className="text-xl font-bold mb-2">{moodLabels[moodLevel]}</h4>
-            </div>
-
-            <div className="space-y-3 px-4">
-              <Slider
-                value={[moodLevel]}
-                onValueChange={handleSliderChange}
-                max={6}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-slate-400 uppercase">
-                <span>Very Unpleasant</span>
-                <span>Very Pleasant</span>
-              </div>
+            <div className="text-center pt-2">
+              <p className="text-sm text-slate-400">Tap an emoji to select your mood</p>
             </div>
 
             <Button 
               onClick={handleNext} 
-              className="w-full py-5 text-base bg-purple-600 hover:bg-purple-700"
+              className="w-full py-5 text-base bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg"
             >
               Next
             </Button>
@@ -246,7 +242,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         {step === "feelings" && (
           <div className="space-y-4">
             <div className="text-center space-y-2">
-              <div className="text-3xl">🌸</div>
+              <div className="text-4xl">{moodData[moodLevel].emoji}</div>
               <h3 className="text-xl font-bold">{moodLabels[moodLevel]}</h3>
               <p className="text-base text-slate-300">What best describes this feeling?</p>
             </div>
@@ -280,7 +276,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         {step === "impact" && (
           <div className="space-y-4">
             <div className="text-center space-y-2">
-              <div className="text-3xl">🌸</div>
+              <div className="text-4xl">{moodData[moodLevel].emoji}</div>
               <h3 className="text-xl font-bold">{moodLabels[moodLevel]}</h3>
               <p className="text-sm text-slate-300">
                 {selectedFeelings.join(", ")}
