@@ -1,10 +1,17 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles } from "lucide-react";
+import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import { QuizGame } from "@/components/QuizGame";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,13 +19,14 @@ import { useToast } from "@/hooks/use-toast";
 
 type QuizAnswer = {
   questionId: number;
+  question: string;
   answer: string;
 };
 
 type CareerResult = {
-  type: string;
+  resultType: string;
   feedback: string;
-  careers: string[];
+  recommendedCareers: string[];
   quote: string;
 };
 
@@ -93,30 +101,30 @@ const calculateResult = (answers: QuizAnswer[]): CareerResult => {
   
   if (scores.people === maxScore) {
     return {
-      type: "The Connector",
+      resultType: "The Connector",
       feedback: "You thrive in social environments and excel at building relationships. Your strength lies in understanding people and facilitating collaboration.",
-      careers: ["Human Resources Manager", "Marketing Specialist", "Social Worker", "Teacher", "Event Coordinator"],
+      recommendedCareers: ["Human Resources Manager", "Marketing Specialist", "Social Worker", "Teacher", "Event Coordinator"],
       quote: "Success is best when it's shared. Your ability to connect people creates endless opportunities.",
     };
   } else if (scores.analytical === maxScore) {
     return {
-      type: "The Analyst",
+      resultType: "The Analyst",
       feedback: "You have a sharp analytical mind and love solving complex problems. Your logical approach makes you excellent at finding optimal solutions.",
-      careers: ["Data Scientist", "Software Engineer", "Financial Analyst", "Research Scientist", "Consultant"],
+      recommendedCareers: ["Data Scientist", "Software Engineer", "Financial Analyst", "Research Scientist", "Consultant"],
       quote: "Logic will get you from A to B. Imagination will take you everywhere. - Albert Einstein",
     };
   } else if (scores.creative === maxScore) {
     return {
-      type: "The Innovator",
+      resultType: "The Innovator",
       feedback: "You're driven by creativity and innovation. Your ability to think outside the box leads to groundbreaking ideas and unique solutions.",
-      careers: ["Graphic Designer", "Product Manager", "Entrepreneur", "Content Creator", "Architect"],
+      recommendedCareers: ["Graphic Designer", "Product Manager", "Entrepreneur", "Content Creator", "Architect"],
       quote: "Creativity is intelligence having fun. Your innovative spirit will shape the future.",
     };
   } else {
     return {
-      type: "The Organizer",
+      resultType: "The Organizer",
       feedback: "You excel at creating structure and efficiency. Your organizational skills and attention to detail ensure everything runs smoothly.",
-      careers: ["Project Manager", "Operations Manager", "Business Analyst", "Supply Chain Manager", "Executive Assistant"],
+      recommendedCareers: ["Project Manager", "Operations Manager", "Business Analyst", "Supply Chain Manager", "Executive Assistant"],
       quote: "Order is the foundation of all things. Your organizational skills create stability and success.",
     };
   }
@@ -130,6 +138,10 @@ const Career = () => {
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [result, setResult] = useState<CareerResult | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
+  const [careerDetails, setCareerDetails] = useState<string>("");
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -139,17 +151,44 @@ const Career = () => {
     checkUser();
   }, []);
 
-  const handleAnswer = (answer: string) => {
-    const newAnswers = [...answers, { questionId: quizQuestions[currentQuestion].id, answer }];
+  const handleAnswer = async (answer: string) => {
+    const newAnswers = [...answers, { 
+      questionId: quizQuestions[currentQuestion].id, 
+      question: quizQuestions[currentQuestion].question,
+      answer 
+    }];
     setAnswers(newAnswers);
 
     if (currentQuestion < quizQuestions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      const calculatedResult = calculateResult(newAnswers);
-      setResult(calculatedResult);
-      setQuizCompleted(true);
-      saveResult(newAnswers, calculatedResult);
+      setIsGenerating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-career-insights', {
+          body: { answers: newAnswers }
+        });
+
+        if (error) throw error;
+
+        const calculatedResult: CareerResult = data;
+        setResult(calculatedResult);
+        setQuizCompleted(true);
+        saveResult(newAnswers, calculatedResult);
+      } catch (error) {
+        console.error('Error generating career insights:', error);
+        toast({
+          title: "Error",
+          description: "Failed to generate career insights. Please try again.",
+          variant: "destructive",
+        });
+        // Use fallback static result
+        const fallbackResult = calculateResult(newAnswers);
+        setResult(fallbackResult);
+        setQuizCompleted(true);
+        saveResult(newAnswers, fallbackResult);
+      } finally {
+        setIsGenerating(false);
+      }
     }
   };
 
@@ -166,9 +205,9 @@ const Career = () => {
     const { error } = await supabase.from("career_quiz_results").insert({
       user_id: userId,
       answers: quizAnswers,
-      result_type: calculatedResult.type,
+      result_type: calculatedResult.resultType,
       feedback: calculatedResult.feedback,
-      recommended_careers: calculatedResult.careers,
+      recommended_careers: calculatedResult.recommendedCareers,
       quote: calculatedResult.quote,
     });
 
@@ -186,11 +225,89 @@ const Career = () => {
     }
   };
 
+  const handleCareerClick = async (career: string) => {
+    setSelectedCareer(career);
+    setIsLoadingDetails(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-career-details', {
+        body: { 
+          careerPath: career,
+          answers: answers,
+          resultType: result?.resultType
+        }
+      });
+
+      if (error) throw error;
+
+      setCareerDetails(data.details);
+    } catch (error) {
+      console.error('Error generating career details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load career details. Please try again.",
+        variant: "destructive",
+      });
+      setCareerDetails("We couldn't load the details for this career path. Please try again later.");
+    } finally {
+      setIsLoadingDetails(false);
+    }
+  };
+
   const resetQuiz = () => {
     setCurrentQuestion(0);
     setAnswers([]);
     setQuizCompleted(false);
     setResult(null);
+    setIsGenerating(false);
+  };
+
+  // Fallback static result for errors
+  const calculateResult = (quizAnswers: QuizAnswer[]): CareerResult => {
+    const scores = { people: 0, analytical: 0, creative: 0, structured: 0 };
+    
+    quizAnswers.forEach((answer) => {
+      const optionIndex = quizQuestions
+        .find((q) => q.id === answer.questionId)
+        ?.options.indexOf(answer.answer);
+      
+      if (optionIndex === 0) scores.people++;
+      else if (optionIndex === 1) scores.analytical++;
+      else if (optionIndex === 2) scores.creative++;
+      else if (optionIndex === 3) scores.structured++;
+    });
+
+    const maxScore = Math.max(scores.people, scores.analytical, scores.creative, scores.structured);
+    
+    if (scores.people === maxScore) {
+      return {
+        resultType: "The Connector",
+        feedback: "You thrive in social environments and excel at building relationships. Your strength lies in understanding people and facilitating collaboration.",
+        recommendedCareers: ["Human Resources Manager", "Marketing Specialist", "Social Worker", "Teacher", "Event Coordinator"],
+        quote: "Success is best when it's shared. Your ability to connect people creates endless opportunities.",
+      };
+    } else if (scores.analytical === maxScore) {
+      return {
+        resultType: "The Analyst",
+        feedback: "You have a sharp analytical mind and love solving complex problems. Your logical approach makes you excellent at finding optimal solutions.",
+        recommendedCareers: ["Data Scientist", "Software Engineer", "Financial Analyst", "Research Scientist", "Consultant"],
+        quote: "Logic will get you from A to B. Imagination will take you everywhere. - Albert Einstein",
+      };
+    } else if (scores.creative === maxScore) {
+      return {
+        resultType: "The Innovator",
+        feedback: "You're driven by creativity and innovation. Your ability to think outside the box leads to groundbreaking ideas and unique solutions.",
+        recommendedCareers: ["Graphic Designer", "Product Manager", "Entrepreneur", "Content Creator", "Architect"],
+        quote: "Creativity is intelligence having fun. Your innovative spirit will shape the future.",
+      };
+    } else {
+      return {
+        resultType: "The Organizer",
+        feedback: "You excel at creating structure and efficiency. Your organizational skills and attention to detail ensure everything runs smoothly.",
+        recommendedCareers: ["Project Manager", "Operations Manager", "Business Analyst", "Supply Chain Manager", "Executive Assistant"],
+        quote: "Order is the foundation of all things. Your organizational skills create stability and success.",
+      };
+    }
   };
 
   return (
@@ -355,7 +472,15 @@ const Career = () => {
 
         <QuizGame />
 
-        {!quizCompleted ? (
+        {isGenerating ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-orange-500 animate-spin mb-4" />
+              <p className="text-lg font-medium">Analyzing your responses...</p>
+              <p className="text-sm text-muted-foreground mt-2">Creating your personalized career profile</p>
+            </CardContent>
+          </Card>
+        ) : !quizCompleted ? (
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -391,7 +516,7 @@ const Career = () => {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Award className="w-6 h-6 text-orange-500" />
-                  <CardTitle className="text-2xl">Your Career Personality: {result?.type}</CardTitle>
+                  <CardTitle className="text-2xl">Your Career Personality: {result?.resultType}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -408,20 +533,21 @@ const Career = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Recommended Career Paths</CardTitle>
-                <CardDescription>Based on your personality profile</CardDescription>
+                <CardDescription>Click any career to see why it matches your personality</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-3 md:grid-cols-2">
-                  {result?.careers.map((career, index) => (
-                    <div
+                  {result?.recommendedCareers.map((career, index) => (
+                    <button
                       key={index}
-                      className="p-4 border rounded-lg bg-card hover:bg-muted transition-colors"
+                      onClick={() => handleCareerClick(career)}
+                      className="p-4 border rounded-lg bg-card hover:bg-muted transition-colors text-left w-full"
                     >
                       <div className="flex items-center gap-2">
                         <Briefcase className="w-4 h-4 text-orange-500" />
                         <span className="font-medium">{career}</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </CardContent>
@@ -432,6 +558,30 @@ const Career = () => {
             </Button>
           </div>
         )}
+
+        <Dialog open={selectedCareer !== null} onOpenChange={() => setSelectedCareer(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-orange-500" />
+                {selectedCareer}
+              </DialogTitle>
+              <DialogDescription>
+                Why this career matches your personality
+              </DialogDescription>
+            </DialogHeader>
+            {isLoadingDetails ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="w-8 h-8 text-orange-500 animate-spin mb-4" />
+                <p className="text-sm text-muted-foreground">Generating personalized insights...</p>
+              </div>
+            ) : (
+              <div className="prose prose-sm max-w-none">
+                <p className="whitespace-pre-wrap text-muted-foreground">{careerDetails}</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
