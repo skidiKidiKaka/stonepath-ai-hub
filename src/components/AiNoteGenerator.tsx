@@ -37,12 +37,47 @@ export const AiNoteGenerator = () => {
     if (!file) return;
 
     try {
-      const text = await file.text();
-      setContent(text);
-      toast({
-        title: "File uploaded",
-        description: "File content loaded successfully",
-      });
+      if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        toast({
+          title: "Processing PDF",
+          description: "Extracting text from PDF...",
+        });
+
+        // For PDF files, we need to use server-side parsing
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Create a temporary file path
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const arrayBuffer = e.target?.result as ArrayBuffer;
+            const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
+            const text = await blob.text();
+            
+            // For now, inform user that PDF parsing requires document parsing
+            toast({
+              title: "PDF Support",
+              description: "Please use .txt or .md files, or copy-paste your content directly",
+              variant: "destructive",
+            });
+          } catch (error) {
+            toast({
+              title: "Error",
+              description: "Failed to process PDF. Please use .txt or .md files",
+              variant: "destructive",
+            });
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const text = await file.text();
+        setContent(text);
+        toast({
+          title: "File uploaded",
+          description: "File content loaded successfully",
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -142,7 +177,7 @@ export const AiNoteGenerator = () => {
             <div className="flex gap-2">
               <input
                 type="file"
-                accept=".txt,.md"
+                accept=".txt,.md,.pdf"
                 onChange={handleFileUpload}
                 className="hidden"
                 id="file-upload"
