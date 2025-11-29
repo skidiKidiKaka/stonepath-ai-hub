@@ -37,11 +37,14 @@ Guidelines:
 - Provide 5-7 actionable, specific tips
 - Each tip should be 1-2 sentences maximum
 - Start each tip with a bullet point (•)
+- Use plain text only - NO markdown formatting (no bold, italics, or special characters)
+- Use straight quotes only (not curly quotes)
 - Be empathetic and supportive
 - Tailor advice to their specific feelings and impact factors
 - Include a mix of immediate actions and longer-term strategies
 - Keep language clear, warm, and encouraging
-- Make tips practical and achievable`;
+- Make tips practical and achievable
+- Write naturally without special formatting or styling`;
 
     const userPrompt = `A user has checked in with their mental health status:
 
