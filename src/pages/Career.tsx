@@ -585,38 +585,75 @@ const Career = () => {
                 </div>
 
                 {result?.strengths && Object.keys(result.strengths).length > 0 && (
-                  <div>
+                  <div className="relative">
                     <h4 className="font-semibold mb-4 flex items-center gap-2">
                       <Brain className="w-4 h-4 text-orange-500" />
                       Your Strength Profile
                     </h4>
-                    <div className="w-full h-[400px] flex items-center justify-center">
+                    <div className="w-full h-[450px] flex items-center justify-center bg-gradient-to-br from-orange-500/5 via-transparent to-orange-600/5 rounded-xl border border-orange-500/10 p-4">
                       <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={Object.entries(result.strengths).map(([strength, score]) => ({
-                          attribute: strength,
-                          value: score,
-                          fullMark: 10
-                        }))}>
-                          <PolarGrid stroke="hsl(var(--border))" />
+                        <RadarChart 
+                          data={Object.entries(result.strengths).map(([strength, score]) => ({
+                            attribute: strength,
+                            value: score,
+                            fullMark: 10
+                          }))}
+                        >
+                          <defs>
+                            <linearGradient id="colorStrength" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
+                              <stop offset="95%" stopColor="#ea580c" stopOpacity={0.3}/>
+                            </linearGradient>
+                          </defs>
+                          <PolarGrid 
+                            stroke="#f97316" 
+                            strokeWidth={1.5}
+                            strokeOpacity={0.2}
+                          />
                           <PolarAngleAxis 
                             dataKey="attribute" 
-                            tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
+                            tick={{ 
+                              fill: "hsl(var(--foreground))", 
+                              fontSize: 13,
+                              fontWeight: 600
+                            }}
                           />
                           <PolarRadiusAxis 
                             angle={90} 
                             domain={[0, 10]}
-                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                            tick={{ 
+                              fill: "hsl(var(--muted-foreground))", 
+                              fontSize: 11,
+                              fontWeight: 500
+                            }}
+                            stroke="#f97316"
+                            strokeOpacity={0.3}
                           />
                           <Radar
                             name="Strength"
                             dataKey="value"
-                            stroke="hsl(var(--orange-500))"
-                            fill="hsl(var(--orange-500))"
-                            fillOpacity={0.5}
-                            strokeWidth={2}
+                            stroke="#f97316"
+                            fill="url(#colorStrength)"
+                            fillOpacity={0.6}
+                            strokeWidth={3}
+                            dot={{ 
+                              fill: "#f97316", 
+                              strokeWidth: 2, 
+                              r: 5,
+                              stroke: "#fff"
+                            }}
+                            activeDot={{
+                              fill: "#ea580c",
+                              stroke: "#fff",
+                              strokeWidth: 3,
+                              r: 7
+                            }}
                           />
                         </RadarChart>
                       </ResponsiveContainer>
+                    </div>
+                    <div className="mt-3 text-center text-xs text-muted-foreground">
+                      Your unique strength distribution across key attributes
                     </div>
                   </div>
                 )}
