@@ -63,6 +63,17 @@ export const AiNoteGenerator = () => {
           fullText += pageText + '\n\n';
         }
 
+        // Clean up the extracted text - remove common PDF artifacts and formatting
+        fullText = fullText
+          .replace(/\*\*/g, '')           // Remove bold markers
+          .replace(/\*/g, '')             // Remove all asterisks
+          .replace(/_/g, '')              // Remove underscores used for emphasis
+          .replace(/#{1,6}\s/g, '')       // Remove markdown headers
+          .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Remove markdown links, keep text
+          .replace(/\s+/g, ' ')           // Normalize whitespace
+          .replace(/\n{3,}/g, '\n\n')     // Limit consecutive newlines to 2
+          .trim();
+
         setContent(fullText);
         toast({
           title: "PDF processed",
@@ -287,31 +298,34 @@ export const AiNoteGenerator = () => {
             {bullets ? (
               <div className="space-y-4">
                 {bullets.split('\n').map((line, index) => {
-                  // Remove asterisks and clean up the line
-                  const cleanedLine = line.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+                  // Aggressively remove all asterisks and clean up the line
+                  let cleanedLine = line
+                    .replace(/\*+/g, '')        // Remove all asterisks
+                    .replace(/^\s*[-•◦]\s*/, '') // Remove bullet markers at start
+                    .trim();
                   
                   if (!cleanedLine) return null;
                   
-                  // Detect headers (lines starting with #)
-                  if (line.startsWith('#')) {
-                    const level = line.match(/^#+/)?.[0].length || 1;
-                    const headerText = cleanedLine.replace(/^#+\s*/, '');
-                    
-                    if (level === 1) {
-                      return <h2 key={index} className="text-2xl font-bold text-orange-500 mt-6 mb-3">{headerText}</h2>;
-                    } else if (level === 2) {
-                      return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{headerText}</h3>;
-                    } else {
-                      return <h4 key={index} className="text-lg font-medium text-foreground mt-3 mb-2">{headerText}</h4>;
-                    }
+                  // Detect headers (lines starting with # or all caps)
+                  if (line.includes('##')) {
+                    const headerText = cleanedLine.replace(/#+\s*/g, '');
+                    return <h2 key={index} className="text-2xl font-bold text-orange-500 mt-6 mb-3">{headerText}</h2>;
+                  } else if (line.includes('#')) {
+                    const headerText = cleanedLine.replace(/#+\s*/g, '');
+                    return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{headerText}</h3>;
                   }
                   
-                  // Main bullet points (starts with -)
+                  // Check if it's all caps (likely a header)
+                  if (cleanedLine === cleanedLine.toUpperCase() && cleanedLine.length > 3 && cleanedLine.length < 100) {
+                    return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{cleanedLine}</h3>;
+                  }
+                  
+                  // Main bullet points (original line starts with -)
                   if (line.trim().startsWith('-')) {
                     return (
                       <div key={index} className="flex gap-3 items-start">
-                        <span className="text-orange-500 text-xl mt-0.5">•</span>
-                        <p className="text-base font-medium leading-relaxed">{cleanedLine.replace(/^-\s*/, '')}</p>
+                        <span className="text-orange-500 text-xl mt-0.5 flex-shrink-0">•</span>
+                        <p className="text-base font-medium leading-relaxed flex-1">{cleanedLine}</p>
                       </div>
                     );
                   }
@@ -320,8 +334,8 @@ export const AiNoteGenerator = () => {
                   if (line.startsWith('  ') || line.startsWith('\t')) {
                     return (
                       <div key={index} className="flex gap-3 items-start ml-8">
-                        <span className="text-orange-400 text-sm mt-1">◦</span>
-                        <p className="text-sm leading-relaxed text-muted-foreground">{cleanedLine}</p>
+                        <span className="text-orange-400 text-sm mt-1 flex-shrink-0">◦</span>
+                        <p className="text-sm leading-relaxed text-muted-foreground flex-1">{cleanedLine}</p>
                       </div>
                     );
                   }
