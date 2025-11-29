@@ -6,41 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+async function fetchFromNewsAPI(apiKey: string, page: number): Promise<any[]> {
+  const categories = ['technology', 'science', 'health', 'entertainment', 'sports', 'business'];
+  
   try {
-    const NEWS_API_KEY = Deno.env.get('NEWS_API_KEY');
-    if (!NEWS_API_KEY) {
-      throw new Error('NEWS_API_KEY not configured');
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const { page = 1 } = body;
-    
-    // Student-relevant categories
-    const categories = ['technology', 'science', 'health', 'entertainment', 'sports', 'business'];
-    
-    console.log(`Fetching news for page ${page}`);
-    
-    // Fetch from multiple categories to get diverse content
     const fetchPromises = categories.map(category => 
-      fetch(`https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=2&apiKey=${NEWS_API_KEY}`)
+      fetch(`https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=2&apiKey=${apiKey}`)
         .then(res => {
-          console.log(`Response from ${category}: status ${res.status}`);
+          console.log(`NewsAPI ${category}: status ${res.status}`);
           return res.json();
         })
         .then(data => {
           if (data.status === 'error') {
-            console.error(`API error for ${category}:`, data.message);
-            // Check for rate limit
+            console.error(`NewsAPI error for ${category}:`, data.message);
             if (data.code === 'rateLimited') {
-              throw new Error('NewsAPI rate limit exceeded. Please try again later or upgrade your API plan.');
+              throw new Error('NewsAPI rate limited');
             }
           }
-          console.log(`${category}: ${data.articles?.length || 0} articles`);
           return {
             category,
             articles: data.articles || []
@@ -54,7 +36,6 @@ serve(async (req) => {
 
     const results = await Promise.all(fetchPromises);
     
-    // Combine and shuffle articles from all categories
     let allArticles: any[] = [];
     results.forEach(result => {
       const articlesWithCategory = result.articles.map((article: any) => ({
@@ -64,16 +45,104 @@ serve(async (req) => {
       allArticles = allArticles.concat(articlesWithCategory);
     });
     
-    // Shuffle array for variety
     allArticles.sort(() => Math.random() - 0.5);
+    return allArticles;
+  } catch (error) {
+    console.error('NewsAPI failed:', error);
+    return [];
+  }
+}
+
+async function fetchFromNewsData(apiKey: string, page: number): Promise<any[]> {
+  const categories = ['technology', 'science', 'health', 'entertainment', 'sports', 'business'];
+  
+  try {
+    const fetchPromises = categories.map(category => 
+      fetch(`https://newsdata.io/api/1/news?apikey=${apiKey}&category=${category}&country=us&language=en&size=2`)
+        .then(res => {
+          console.log(`NewsData.io ${category}: status ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data.status === 'error') {
+            console.error(`NewsData.io error for ${category}:`, data.message);
+            return { category, articles: [] };
+          }
+          return {
+            category,
+            articles: data.results || []
+          };
+        })
+        .catch(err => {
+          console.error(`Error fetching ${category}:`, err);
+          return { category, articles: [] };
+        })
+    );
+
+    const results = await Promise.all(fetchPromises);
     
-    console.log(`Fetched ${allArticles.length} total articles`);
+    let allArticles: any[] = [];
+    results.forEach(result => {
+      const articlesWithCategory = result.articles.map((article: any) => ({
+        title: article.title,
+        description: article.description,
+        content: article.content || article.description,
+        image_url: article.image_url,
+        link: article.link,
+        pubDate: article.pubDate,
+        source_id: article.source_id,
+        categoryLabel: result.category.charAt(0).toUpperCase() + result.category.slice(1)
+      }));
+      allArticles = allArticles.concat(articlesWithCategory);
+    });
+    
+    allArticles.sort(() => Math.random() - 0.5);
+    return allArticles;
+  } catch (error) {
+    console.error('NewsData.io failed:', error);
+    return [];
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const NEWS_API_KEY = Deno.env.get('NEWS_API_KEY');
+    const NEWSDATA_API_KEY = Deno.env.get('NEWSDATA_API_KEY');
+    
+    if (!NEWS_API_KEY && !NEWSDATA_API_KEY) {
+      throw new Error('No news API keys configured');
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const { page = 1 } = body;
+    
+    let allArticles: any[] = [];
+    let source = 'NewsAPI';
+    
+    // Try NewsAPI first
+    if (NEWS_API_KEY) {
+      console.log('Trying NewsAPI...');
+      allArticles = await fetchFromNewsAPI(NEWS_API_KEY, page);
+    }
+    
+    // Fall back to NewsData.io if NewsAPI failed or returned no results
+    if (allArticles.length === 0 && NEWSDATA_API_KEY) {
+      console.log('Falling back to NewsData.io...');
+      allArticles = await fetchFromNewsData(NEWSDATA_API_KEY, page);
+      source = 'NewsData.io';
+    }
+    
+    console.log(`Fetched ${allArticles.length} total articles from ${source}`);
     
     if (allArticles.length === 0) {
       // Provide more helpful error message
       return new Response(
         JSON.stringify({ 
-          error: 'No articles available. This might be due to NewsAPI rate limits. Please try again in a few minutes.',
+          error: 'No articles available. This might be due to API rate limits. Please try again in a few minutes.',
           news: [],
           hasMore: false
         }),
@@ -96,16 +165,17 @@ serve(async (req) => {
       summary: article.description || article.title,
       content: article.content || article.description || 'Read more at the source.',
       category: article.categoryLabel,
-      imageUrl: article.urlToImage || null,
-      sourceUrl: article.url,
-      publishedAt: article.publishedAt,
-      source: article.source?.name || 'News Source'
+      imageUrl: article.urlToImage || article.image_url || null,
+      sourceUrl: article.url || article.link,
+      publishedAt: article.publishedAt || article.pubDate,
+      source: article.source?.name || article.source_id || 'News Source'
     }));
 
     return new Response(
       JSON.stringify({ 
         news: newsItems,
-        hasMore: allArticles.length > endIndex
+        hasMore: allArticles.length > endIndex,
+        source
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
