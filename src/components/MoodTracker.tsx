@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -220,6 +220,11 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-xl max-h-[85vh] bg-gradient-to-br from-slate-900 to-slate-800 border-slate-700 text-white p-6">
+        <DialogTitle className="sr-only">Mood Check-In</DialogTitle>
+        <DialogDescription className="sr-only">
+          Track your daily mood, feelings, and impact factors to receive personalized wellness recommendations.
+        </DialogDescription>
+        
         {step === "slider" && (
           <div className="space-y-6">
             <div className="text-center space-y-2">

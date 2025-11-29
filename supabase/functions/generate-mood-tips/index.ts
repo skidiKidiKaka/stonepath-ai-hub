@@ -31,20 +31,24 @@ serve(async (req) => {
       "Very Pleasant"
     ];
 
-    const systemPrompt = `You are a compassionate mental health and wellness advisor. Generate personalized wellness recommendations based on the user's current emotional state.
+    const systemPrompt = `You are a compassionate mental health and wellness advisor. Generate personalized wellness recommendations.
 
-Guidelines:
-- Provide 5-7 actionable, specific tips
-- Each tip should be 1-2 sentences maximum
-- Start each tip with a bullet point (•)
-- Use plain text only - NO markdown formatting (no bold, italics, or special characters)
+CRITICAL FORMATTING RULES:
+- Generate EXACTLY 5-7 tips
+- Each tip MUST start on a new line
+- Each tip MUST begin with the bullet character: •
+- Use plain text only (no bold, no italics, no markdown)
 - Use straight quotes only (not curly quotes)
-- Be empathetic and supportive
-- Tailor advice to their specific feelings and impact factors
-- Include a mix of immediate actions and longer-term strategies
-- Keep language clear, warm, and encouraging
-- Make tips practical and achievable
-- Write naturally without special formatting or styling`;
+- Each tip should be 1-2 concise sentences
+- DO NOT number the tips
+- DO NOT use asterisks or dashes instead of bullets
+
+Example format:
+• Take a 10-minute walk outside to clear your mind.
+• Write down three things you accomplished today.
+• Connect with a friend or family member.
+
+Your tips should be empathetic, actionable, and specific to the user's situation.`;
 
     const userPrompt = `A user has checked in with their mental health status:
 
@@ -91,12 +95,33 @@ Please provide personalized wellness recommendations that address their specific
     const data = await response.json();
     const generatedText = data.choices[0].message.content;
     
-    // Parse the tips from the response
-    const tips = generatedText
+    console.log('Raw AI response:', generatedText);
+    
+    // Parse tips - handle multiple bullet formats
+    let tips = generatedText
       .split('\n')
       .map((line: string) => line.trim())
-      .filter((line: string) => line.startsWith('•') || line.startsWith('-') || line.startsWith('*'))
-      .map((line: string) => line.replace(/^[•\-*]\s*/, '• '));
+      .filter((line: string) => {
+        // Accept lines starting with •, -, *, or numbers followed by period/parenthesis
+        return line.match(/^[•\-*]/) || line.match(/^\d+[\.\)]/) || (line.length > 10 && !line.includes(':'));
+      })
+      .map((line: string) => {
+        // Normalize all to bullet format
+        let cleaned = line.replace(/^[•\-*]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
+        return `• ${cleaned}`;
+      })
+      .filter((line: string) => line.length > 3); // Remove empty/too short tips
+
+    // Fallback: if parsing failed, try to extract sentences
+    if (tips.length === 0) {
+      console.log('Parsing failed, trying sentence extraction');
+      tips = generatedText
+        .split(/[.!?]+/)
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 20 && s.length < 200)
+        .slice(0, 7)
+        .map((s: string) => `• ${s}.`);
+    }
 
     console.log('Generated tips:', tips);
 
