@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { useState, useMemo, useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -48,6 +49,10 @@ const Fitness = () => {
   const [recipePrepTime, setRecipePrepTime] = useState("");
   const [recipeCalories, setRecipeCalories] = useState("");
   const [recipeAllergies, setRecipeAllergies] = useState("");
+  const [recipeMessages, setRecipeMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [userRecipeInput, setUserRecipeInput] = useState("");
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch user data
   const { data: user } = useQuery({
@@ -311,6 +316,8 @@ const Fitness = () => {
 
       if (data?.recipe) {
         setAiRecipe(data.recipe);
+        const recipeText = `**${data.recipe.name}**\n\n${data.recipe.description}\n\n**Prep Time:** ${data.recipe.prepTime} | **Cook Time:** ${data.recipe.cookTime} | **Servings:** ${data.recipe.servings}\n\n**Ingredients:**\n${data.recipe.ingredients.map((i: string) => `• ${i}`).join('\n')}\n\n**Instructions:**\n${data.recipe.instructions.map((step: string, idx: number) => `${idx + 1}. ${step}`).join('\n')}\n\n**Nutrition per serving:**\nCalories: ${data.recipe.nutrition.calories} | Protein: ${data.recipe.nutrition.protein} | Carbs: ${data.recipe.nutrition.carbs} | Fats: ${data.recipe.nutrition.fats}`;
+        setRecipeMessages([{ role: "assistant", content: recipeText }]);
         toast({
           title: "Recipe Generated! 🍳",
           description: "Check out your personalized healthy recipe!",
@@ -326,6 +333,58 @@ const Fitness = () => {
     } finally {
       setIsGeneratingRecipe(false);
     }
+  };
+
+  const handleSendRecipeMessage = async () => {
+    if (!userRecipeInput.trim() || isSendingMessage) return;
+
+    const newUserMessage = { role: "user", content: userRecipeInput };
+    setRecipeMessages(prev => [...prev, newUserMessage]);
+    setUserRecipeInput("");
+    setIsSendingMessage(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-recipe', {
+        body: {
+          messages: recipeMessages,
+          userMessage: userRecipeInput,
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        setRecipeMessages(prev => [...prev, { role: "assistant", content: data.message }]);
+      }
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+      setRecipeMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [recipeMessages, isSendingMessage]);
+
+  const handleResetRecipe = () => {
+    setAiRecipe(null);
+    setRecipeMessages([]);
+    setUserRecipeInput("");
+    setRecipeDietary("");
+    setRecipeCuisine("");
+    setRecipePrepTime("");
+    setRecipeCalories("");
+    setRecipeAllergies("");
   };
 
   return (
@@ -679,83 +738,74 @@ const Fitness = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 p-4 rounded-lg border border-red-200 dark:border-red-800">
-                          <h3 className="text-2xl font-bold mb-2">{aiRecipe.name}</h3>
-                          <p className="text-muted-foreground">{aiRecipe.description}</p>
-                          <div className="flex gap-4 mt-3 text-sm">
-                            <Badge variant="secondary">⏱️ Prep: {aiRecipe.prepTime}</Badge>
-                            <Badge variant="secondary">🍳 Cook: {aiRecipe.cookTime}</Badge>
-                            <Badge variant="secondary">🍽️ Serves: {aiRecipe.servings}</Badge>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2">📊 Nutrition (per serving)</h4>
-                          <div className="grid grid-cols-2 gap-2 text-sm">
-                            <div className="p-2 bg-muted rounded">
-                              <span className="font-medium">Calories:</span> {aiRecipe.nutrition.calories}
-                            </div>
-                            <div className="p-2 bg-muted rounded">
-                              <span className="font-medium">Protein:</span> {aiRecipe.nutrition.protein}
-                            </div>
-                            <div className="p-2 bg-muted rounded">
-                              <span className="font-medium">Carbs:</span> {aiRecipe.nutrition.carbs}
-                            </div>
-                            <div className="p-2 bg-muted rounded">
-                              <span className="font-medium">Fats:</span> {aiRecipe.nutrition.fats}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2">🥗 Ingredients</h4>
-                          <ul className="space-y-1 text-sm">
-                            {aiRecipe.ingredients.map((ingredient: string, idx: number) => (
-                              <li key={idx} className="flex items-start">
-                                <span className="mr-2">•</span>
-                                <span>{ingredient}</span>
-                              </li>
+                      <div className="space-y-4 flex flex-col h-[500px]">
+                        {/* Chat messages */}
+                        <ScrollArea className="flex-1 pr-3">
+                          <div className="space-y-3" ref={chatScrollRef}>
+                            {recipeMessages.map((msg, idx) => (
+                              <div
+                                key={idx}
+                                className={`p-3 rounded-lg ${
+                                  msg.role === 'user'
+                                    ? 'bg-red-500 text-white ml-8'
+                                    : 'bg-muted mr-8'
+                                }`}
+                              >
+                                <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
+                              </div>
                             ))}
-                          </ul>
-                        </div>
+                            {isSendingMessage && (
+                              <div className="p-3 rounded-lg bg-muted mr-8">
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              </div>
+                            )}
+                          </div>
+                        </ScrollArea>
 
-                        <div>
-                          <h4 className="font-semibold text-lg mb-2">👨‍🍳 Instructions</h4>
-                          <ol className="space-y-2 text-sm">
-                            {aiRecipe.instructions.map((instruction: string, idx: number) => (
-                              <li key={idx} className="flex items-start">
-                                <span className="font-semibold mr-2 text-red-500">{idx + 1}.</span>
-                                <span>{instruction}</span>
-                              </li>
-                            ))}
-                          </ol>
-                        </div>
-
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => {
-                              setAiRecipe(null);
-                              setRecipeDietary("");
-                              setRecipeCuisine("");
-                              setRecipePrepTime("");
-                              setRecipeCalories("");
-                              setRecipeAllergies("");
-                            }}
-                            variant="outline"
-                            className="flex-1"
-                          >
-                            Generate Another
-                          </Button>
-                          <Button 
-                            onClick={() => {
-                              setIsAiRecipeOpen(false);
-                              setAiRecipe(null);
-                            }}
-                            className="flex-1"
-                          >
-                            Close
-                          </Button>
+                        {/* Input area */}
+                        <div className="space-y-2 border-t pt-3">
+                          <div className="flex gap-2">
+                            <Textarea
+                              placeholder="Ask me to adjust the recipe (e.g., 'Make it vegetarian', 'Reduce prep time', 'Add more protein')"
+                              value={userRecipeInput}
+                              onChange={(e) => setUserRecipeInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendRecipeMessage();
+                                }
+                              }}
+                              className="min-h-[60px] resize-none"
+                              disabled={isSendingMessage}
+                            />
+                            <Button
+                              onClick={handleSendRecipeMessage}
+                              disabled={!userRecipeInput.trim() || isSendingMessage}
+                              className="self-end"
+                            >
+                              Send
+                            </Button>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              onClick={handleResetRecipe}
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                            >
+                              Generate New Recipe
+                            </Button>
+                            <Button 
+                              onClick={() => {
+                                setIsAiRecipeOpen(false);
+                                handleResetRecipe();
+                              }}
+                              size="sm"
+                              className="flex-1"
+                            >
+                              Close
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}
