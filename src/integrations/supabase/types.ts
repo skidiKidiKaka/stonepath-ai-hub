@@ -121,6 +121,7 @@ export type Database = {
           id: string
           quote: string
           recommended_careers: Json
+          recommended_clubs: Json | null
           result_type: string
           user_id: string
         }
@@ -131,6 +132,7 @@ export type Database = {
           id?: string
           quote: string
           recommended_careers: Json
+          recommended_clubs?: Json | null
           result_type: string
           user_id: string
         }
@@ -141,6 +143,7 @@ export type Database = {
           id?: string
           quote?: string
           recommended_careers?: Json
+          recommended_clubs?: Json | null
           result_type?: string
           user_id?: string
         }
