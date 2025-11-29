@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import { QuizGame } from "@/components/QuizGame";
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
 import {
   Dialog,
   DialogContent,
@@ -564,16 +565,33 @@ const Career = () => {
                       <Brain className="w-4 h-4 text-orange-500" />
                       Your Strength Profile
                     </h4>
-                    <div className="space-y-3">
-                      {Object.entries(result.strengths).map(([strength, score]) => (
-                        <div key={strength} className="space-y-1">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm font-medium">{strength}</span>
-                            <span className="text-sm text-orange-500 font-semibold">{score}/10</span>
-                          </div>
-                          <Progress value={score * 10} className="h-2" />
-                        </div>
-                      ))}
+                    <div className="w-full h-[400px] flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={Object.entries(result.strengths).map(([strength, score]) => ({
+                          attribute: strength,
+                          value: score,
+                          fullMark: 10
+                        }))}>
+                          <PolarGrid stroke="hsl(var(--border))" />
+                          <PolarAngleAxis 
+                            dataKey="attribute" 
+                            tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }}
+                          />
+                          <PolarRadiusAxis 
+                            angle={90} 
+                            domain={[0, 10]}
+                            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                          />
+                          <Radar
+                            name="Strength"
+                            dataKey="value"
+                            stroke="hsl(var(--orange-500))"
+                            fill="hsl(var(--orange-500))"
+                            fillOpacity={0.5}
+                            strokeWidth={2}
+                          />
+                        </RadarChart>
+                      </ResponsiveContainer>
                     </div>
                   </div>
                 )}
