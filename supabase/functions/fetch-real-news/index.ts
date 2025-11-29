@@ -28,11 +28,24 @@ serve(async (req) => {
     // Fetch from multiple categories to get diverse content
     const fetchPromises = categories.map(category => 
       fetch(`https://newsapi.org/v2/top-headlines?country=us&category=${category}&pageSize=2&apiKey=${NEWS_API_KEY}`)
-        .then(res => res.json())
-        .then(data => ({
-          category,
-          articles: data.articles || []
-        }))
+        .then(res => {
+          console.log(`Response from ${category}: status ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data.status === 'error') {
+            console.error(`API error for ${category}:`, data.message);
+            // Check for rate limit
+            if (data.code === 'rateLimited') {
+              throw new Error('NewsAPI rate limit exceeded. Please try again later or upgrade your API plan.');
+            }
+          }
+          console.log(`${category}: ${data.articles?.length || 0} articles`);
+          return {
+            category,
+            articles: data.articles || []
+          };
+        })
         .catch(err => {
           console.error(`Error fetching ${category}:`, err);
           return { category, articles: [] };
@@ -57,7 +70,18 @@ serve(async (req) => {
     console.log(`Fetched ${allArticles.length} total articles`);
     
     if (allArticles.length === 0) {
-      throw new Error('No articles found');
+      // Provide more helpful error message
+      return new Response(
+        JSON.stringify({ 
+          error: 'No articles available. This might be due to NewsAPI rate limits. Please try again in a few minutes.',
+          news: [],
+          hasMore: false
+        }),
+        { 
+          status: 200, // Return 200 to prevent error display, but with empty news array
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
 
     // Paginate: 7 articles per page

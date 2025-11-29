@@ -58,6 +58,14 @@ export const NewsCarousel = () => {
         throw new Error(error.message || 'Failed to fetch news');
       }
 
+      // Handle rate limit or API issues
+      if (data.error) {
+        console.warn('News API issue:', data.error);
+        toast.error(data.error);
+        setHasMore(false);
+        return;
+      }
+
       const newsItems = data.news || [];
       setHasMore(data.hasMore || false);
       
@@ -69,7 +77,7 @@ export const NewsCarousel = () => {
     } catch (error) {
       console.error('Error fetching news:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load news';
-      toast.error('Failed to load news. Please try again.');
+      toast.error('Failed to load news. Please try again later.');
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -114,6 +122,24 @@ export const NewsCarousel = () => {
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
+      </div>
+    );
+  }
+
+  if (news.length === 0) {
+    return (
+      <div className="mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <Newspaper className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold">Student News</h2>
+        </div>
+        <Card className="p-8 text-center">
+          <Newspaper className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="text-lg font-semibold mb-2">No News Available</h3>
+          <p className="text-sm text-muted-foreground">
+            News is temporarily unavailable. This might be due to API rate limits. Please check back later.
+          </p>
+        </Card>
       </div>
     );
   }
