@@ -38,53 +38,78 @@ type CareerResult = {
 const quizQuestions = [
   {
     id: 1,
-    question: "What energizes you the most?",
-    options: ["Working with people", "Solving complex problems", "Creating something new", "Organizing and planning"],
+    question: "When you're thrown into a group project, what role do you naturally gravitate toward?",
+    options: ["The one who keeps everyone vibing and communicating", "The mastermind who solves the hardest problems", "The visionary with all the cool ideas", "The planner who makes sure nothing falls through the cracks", "The one who does a bit of everything"],
   },
   {
     id: 2,
-    question: "How do you prefer to work?",
-    options: ["In a team", "Independently", "Leading others", "Following a structured process"],
+    question: "It's Friday night. What sounds most appealing?",
+    options: ["Hanging out with friends and meeting new people", "Getting lost in a book, game, or solo hobby", "Working on a passion project or creative pursuit", "Organizing something for the weekend or planning ahead", "Honestly? Netflix and chill with snacks"],
   },
   {
     id: 3,
-    question: "What's your ideal work environment?",
-    options: ["Dynamic and social", "Quiet and focused", "Creative and flexible", "Structured and organized"],
+    question: "Your teacher says 'work however you want.' What do you do?",
+    options: ["Form a study group immediately", "Lock in solo mode with headphones on", "Experiment with different approaches until something clicks", "Create a detailed schedule and checklist", "Mix it up depending on my mood"],
   },
   {
     id: 4,
-    question: "What motivates you most?",
-    options: ["Helping others", "Solving challenges", "Innovation and creativity", "Achievement and success"],
+    question: "What kind of feedback actually helps you improve?",
+    options: ["Direct conversation with someone I trust", "Written notes I can analyze at my own pace", "Creative suggestions that spark new ideas", "Clear, actionable steps and metrics", "A combination of different feedback types"],
   },
   {
     id: 5,
-    question: "How do you handle stress?",
-    options: ["Talk it out with others", "Analyze and strategize", "Take a creative break", "Make a detailed plan"],
+    question: "You're stuck on a problem. What's your move?",
+    options: ["Ask for help or brainstorm with others", "Research it obsessively until I figure it out", "Take a break and let my subconscious work on it", "Break it down into smaller, manageable steps", "Try multiple approaches and see what works"],
   },
   {
     id: 6,
-    question: "What's your learning style?",
-    options: ["Interactive discussions", "Research and reading", "Hands-on experimentation", "Step-by-step instructions"],
+    question: "What's your definition of success?",
+    options: ["Making a positive impact on people's lives", "Mastering complex skills and knowledge", "Creating something unique that didn't exist before", "Achieving measurable goals and recognition", "Finding balance and happiness in what I do"],
   },
   {
     id: 7,
-    question: "What type of tasks do you enjoy?",
-    options: ["Communication and networking", "Analysis and problem-solving", "Design and innovation", "Planning and execution"],
+    question: "When watching a movie or show, what do you pay attention to most?",
+    options: ["The characters and their relationships", "The plot twists and logical consistency", "The cinematography, music, and artistic choices", "The story structure and pacing", "I just vibe with whatever catches my interest"],
   },
   {
     id: 8,
-    question: "How do you make decisions?",
-    options: ["Consulting with others", "Logical analysis", "Intuition and creativity", "Data and established processes"],
+    question: "How do you handle a tight deadline?",
+    options: ["Rally the team and divide the work", "Hyperfocus and power through alone", "Use the pressure to fuel creative breakthroughs", "Execute my pre-planned strategy efficiently", "Adapt my approach based on what needs to happen"],
   },
   {
     id: 9,
-    question: "What's your ideal project?",
-    options: ["Community-focused", "Technical challenge", "Creative endeavor", "Strategic initiative"],
+    question: "What subject or activity makes you lose track of time?",
+    options: ["Anything involving people, communication, or social dynamics", "Puzzles, logic problems, or technical deep-dives", "Art, music, writing, or any creative outlet", "Planning events, organizing systems, or strategizing", "It varies - I'm interested in multiple things"],
   },
   {
     id: 10,
-    question: "What skills do you value most?",
-    options: ["Interpersonal skills", "Critical thinking", "Creativity", "Organization"],
+    question: "You have a free period. What are you most likely doing?",
+    options: ["Chatting with friends or helping someone out", "Reading, coding, or diving into research", "Doodling, writing, or working on a creative project", "Catching up on assignments or planning ahead", "Depends on the day - could be anything"],
+  },
+  {
+    id: 11,
+    question: "What's your relationship with rules and structure?",
+    options: ["I see them as guidelines that help people work together", "I follow them if they make logical sense", "I bend them when creativity demands it", "I appreciate them - they create order and efficiency", "I'm flexible - some rules matter, some don't"],
+  },
+  {
+    id: 12,
+    question: "If you could skip one type of task forever, what would it be?",
+    options: ["Working alone for long periods without social interaction", "Dealing with vague, illogical, or messy information", "Following rigid procedures with no room for creativity", "Unplanned, chaotic situations with no clear structure", "Honestly, I can handle most things if I'm interested"],
+  },
+  {
+    id: 13,
+    question: "What's your ideal career environment?",
+    options: ["Collaborative with diverse people and strong team culture", "Challenging with complex problems to solve", "Dynamic with freedom to innovate and experiment", "Organized with clear goals and advancement paths", "Flexible with variety and autonomy"],
+  },
+  {
+    id: 14,
+    question: "When you accomplish something big, what matters most?",
+    options: ["Seeing how it helps or inspires others", "Knowing I solved something difficult", "The satisfaction of creating something original", "Hitting my goals and receiving recognition", "Personal growth and learning from the experience"],
+  },
+  {
+    id: 15,
+    question: "What drains your energy the fastest?",
+    options: ["Working in isolation with no human interaction", "Repetitive tasks that don't engage my brain", "Rigid environments with no creative freedom", "Chaos and lack of clear direction or planning", "Being forced to do the same thing all the time"],
   },
 ];
 
