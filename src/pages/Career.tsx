@@ -189,6 +189,7 @@ const Career = () => {
   const [targetRole, setTargetRole] = useState("");
   const [showRoleInput, setShowRoleInput] = useState(false);
   const [selectedGuidanceTopic, setSelectedGuidanceTopic] = useState<string | null>(null);
+  const [modeStarted, setModeStarted] = useState(false);
   const chatInterviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -316,6 +317,7 @@ const Career = () => {
     setInterviewMessages([]);
     setUserInterviewInput("");
     setSelectedGuidanceTopic(null);
+    setModeStarted(true);
     
     if (mode === "practice") {
       setShowRoleInput(true);
@@ -439,6 +441,7 @@ const Career = () => {
       setSelectedGuidanceTopic(null);
     }
     setUserInterviewInput("");
+    setModeStarted(true);
   };
 
   // Auto-scroll for interview chat
@@ -916,8 +919,8 @@ const Career = () => {
               </DialogDescription>
             </DialogHeader>
             
-            {/* Initial mode selection */}
-            {interviewMessages.length === 0 && !showRoleInput && !selectedGuidanceTopic ? (
+            {/* Initial mode selection - only show when no mode has been selected */}
+            {!modeStarted ? (
               <div className="space-y-6 py-4">
                 <p className="text-muted-foreground text-center">
                   Choose how you'd like to prepare for your interviews:
@@ -1149,6 +1152,7 @@ const Career = () => {
                     onClick={() => {
                       setIsInterviewPrepOpen(false);
                       setInterviewMode("guidance");
+                      setModeStarted(false);
                     }}
                     variant="outline"
                   >
@@ -1246,6 +1250,7 @@ const Career = () => {
                         setShowRoleInput(false);
                         setSelectedGuidanceTopic(null);
                         setTargetRole("");
+                        setModeStarted(false);
                       }}
                       variant="secondary"
                       size="sm"
