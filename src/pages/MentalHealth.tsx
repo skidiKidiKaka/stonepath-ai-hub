@@ -5,12 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import meditationAudio from "@/assets/meditation-music.mp3";
 import { MoodTracker } from "@/components/MoodTracker";
 import { MoodChart } from "@/components/MoodChart";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
 type ZodiacSign = "aries" | "taurus" | "gemini" | "cancer" | "leo" | "virgo" | "libra" | "scorpio" | "sagittarius" | "capricorn" | "aquarius" | "pisces" | null;
 type CyclePhase = "menstrual" | "follicular" | "ovulation" | "luteal" | null;
@@ -75,6 +76,72 @@ const MentalHealth = () => {
   const [cyclePhase, setCyclePhase] = useState<CyclePhase>(null);
   const [cycleTrackingEnabled, setCycleTrackingEnabled] = useState(true);
   const [nextPeriodDate, setNextPeriodDate] = useState<Date | null>(null);
+  const [zodiacWellness, setZodiacWellness] = useState<{
+    insight: string;
+    affirmation: string;
+    emoji: string;
+  } | null>(null);
+  const [isLoadingZodiac, setIsLoadingZodiac] = useState(false);
+
+  const handleMoodComplete = (level: number, feelings: string[], impacts: string[], tips: string[]) => {
+    setMoodData({ level, feelings, impacts, tips });
+    setMoodChartKey(prev => prev + 1);
+    
+    // Regenerate zodiac wellness with new mood data
+    if (zodiacSign) {
+      generateZodiacWellness(zodiacSign, level, feelings, impacts);
+    }
+    
+    toast({
+      title: "Mood Recorded",
+      description: "Your personalized tips are ready!",
+    });
+  };
+
+  const generateZodiacWellness = useCallback(async (sign: ZodiacSign, moodLevel?: number, feelings?: string[], impacts?: string[]) => {
+    if (!sign) return;
+    
+    setIsLoadingZodiac(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-zodiac-wellness', {
+        body: {
+          zodiacSign: sign,
+          moodLevel: moodLevel !== undefined ? moodLevel : moodData?.level,
+          feelings: feelings || moodData?.feelings || [],
+          impacts: impacts || moodData?.impacts || []
+        }
+      });
+
+      if (error) {
+        console.error('Error generating zodiac wellness:', error);
+        toast({
+          title: "Using Default Insights",
+          description: "AI generation unavailable, showing standard content.",
+          variant: "destructive"
+        });
+        // Fallback to static content
+        const staticData = zodiacInsights[sign];
+        setZodiacWellness({
+          insight: staticData.insight,
+          affirmation: staticData.affirmation,
+          emoji: staticData.emoji
+        });
+      } else {
+        setZodiacWellness(data);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      const staticData = zodiacInsights[sign];
+      setZodiacWellness({
+        insight: staticData.insight,
+        affirmation: staticData.affirmation,
+        emoji: staticData.emoji
+      });
+    } finally {
+      setIsLoadingZodiac(false);
+    }
+  }, [moodData, toast]);
 
   useEffect(() => {
     const savedZodiac = localStorage.getItem('zodiacSign') as ZodiacSign;
@@ -82,20 +149,15 @@ const MentalHealth = () => {
     const savedCycleTracking = localStorage.getItem('cycleTrackingEnabled');
     const savedPeriodDate = localStorage.getItem('nextPeriodDate');
     
-    if (savedZodiac) setZodiacSign(savedZodiac);
+    if (savedZodiac) {
+      setZodiacSign(savedZodiac);
+      // Generate AI wellness content for saved zodiac sign
+      generateZodiacWellness(savedZodiac);
+    }
     if (savedCycle) setCyclePhase(savedCycle);
     if (savedCycleTracking !== null) setCycleTrackingEnabled(savedCycleTracking === 'true');
     if (savedPeriodDate) setNextPeriodDate(new Date(savedPeriodDate));
-  }, []);
-
-  const handleMoodComplete = (level: number, feelings: string[], impacts: string[], tips: string[]) => {
-    setMoodData({ level, feelings, impacts, tips });
-    setMoodChartKey(prev => prev + 1); // Force chart refresh
-    toast({
-      title: "Mood Recorded",
-      description: "Your personalized tips are ready!",
-    });
-  };
+  }, [generateZodiacWellness]);
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
@@ -111,9 +173,10 @@ const MentalHealth = () => {
   const handleZodiacChange = (sign: ZodiacSign) => {
     setZodiacSign(sign);
     localStorage.setItem('zodiacSign', sign || '');
+    generateZodiacWellness(sign);
     toast({
       title: "Zodiac Sign Saved",
-      description: "Your personalized insights are ready!",
+      description: "Generating your personalized insights...",
     });
   };
 
@@ -357,15 +420,31 @@ const MentalHealth = () => {
                 </Select>
                 {zodiacSign && (
                   <div className="p-4 bg-purple-500/10 rounded-lg space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-3xl">{zodiacInsights[zodiacSign].emoji}</span>
-                      <h3 className="font-semibold capitalize">{zodiacSign}</h3>
-                    </div>
-                    <p className="text-sm">{zodiacInsights[zodiacSign].insight}</p>
-                    <div className="pt-2 border-t border-purple-500/20">
-                      <p className="text-xs font-medium text-muted-foreground">Daily Affirmation:</p>
-                      <p className="text-sm italic">"{zodiacInsights[zodiacSign].affirmation}"</p>
-                    </div>
+                    {isLoadingZodiac ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="w-8 h-8 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                          <p className="text-sm text-muted-foreground">Generating personalized insights...</p>
+                        </div>
+                      </div>
+                    ) : zodiacWellness ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <span className="text-3xl">{zodiacWellness.emoji}</span>
+                          <h3 className="font-semibold capitalize">{zodiacSign}</h3>
+                        </div>
+                        <p className="text-sm">{zodiacWellness.insight}</p>
+                        <div className="pt-2 border-t border-purple-500/20">
+                          <p className="text-xs font-medium text-muted-foreground">Daily Affirmation:</p>
+                          <p className="text-sm italic">"{zodiacWellness.affirmation}"</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl">{zodiacInsights[zodiacSign].emoji}</span>
+                        <h3 className="font-semibold capitalize">{zodiacSign}</h3>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
