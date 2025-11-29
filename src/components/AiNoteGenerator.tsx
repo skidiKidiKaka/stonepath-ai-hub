@@ -30,7 +30,6 @@ export const AiNoteGenerator = () => {
   const [bullets, setBullets] = useState("");
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [mindmap, setMindmap] = useState<Mindmap | null>(null);
-  const [summary, setSummary] = useState("");
   const [activeTab, setActiveTab] = useState("input");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,8 +130,6 @@ export const AiNoteGenerator = () => {
             variant: "destructive",
           });
         }
-      } else if (type === 'summary') {
-        setSummary(data.content);
       }
     } catch (error) {
       console.error('Error generating notes:', error);
@@ -157,12 +154,11 @@ export const AiNoteGenerator = () => {
     setIsGenerating(true);
     
     try {
-      // Generate all 4 types in parallel
-      const [bulletsRes, flashcardsRes, mindmapRes, summaryRes] = await Promise.all([
+      // Generate 3 types in parallel
+      const [bulletsRes, flashcardsRes, mindmapRes] = await Promise.all([
         supabase.functions.invoke('generate-notes', { body: { content, type: 'bullets' } }),
         supabase.functions.invoke('generate-notes', { body: { content, type: 'flashcards' } }),
-        supabase.functions.invoke('generate-notes', { body: { content, type: 'mindmap' } }),
-        supabase.functions.invoke('generate-notes', { body: { content, type: 'summary' } })
+        supabase.functions.invoke('generate-notes', { body: { content, type: 'mindmap' } })
       ]);
 
       // Process bullets
@@ -208,11 +204,6 @@ export const AiNoteGenerator = () => {
         }
       }
 
-      // Process summary
-      if (!summaryRes.error && summaryRes.data) {
-        setSummary(summaryRes.data.content);
-      }
-
       toast({
         title: "Success",
         description: "All notes generated successfully",
@@ -237,12 +228,11 @@ export const AiNoteGenerator = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="input">Input</TabsTrigger>
           <TabsTrigger value="bullets">Bullets</TabsTrigger>
           <TabsTrigger value="flashcards">Flashcards</TabsTrigger>
           <TabsTrigger value="mindmap">Mindmap</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="input" className="space-y-4">
@@ -293,9 +283,57 @@ export const AiNoteGenerator = () => {
         </TabsContent>
 
         <TabsContent value="bullets">
-          <div className="prose prose-sm max-w-none bg-background/50 p-4 rounded-lg border">
+          <div className="bg-background/50 p-6 rounded-lg border">
             {bullets ? (
-              <pre className="whitespace-pre-wrap font-sans">{bullets}</pre>
+              <div className="space-y-4">
+                {bullets.split('\n').map((line, index) => {
+                  // Remove asterisks and clean up the line
+                  const cleanedLine = line.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+                  
+                  if (!cleanedLine) return null;
+                  
+                  // Detect headers (lines starting with #)
+                  if (line.startsWith('#')) {
+                    const level = line.match(/^#+/)?.[0].length || 1;
+                    const headerText = cleanedLine.replace(/^#+\s*/, '');
+                    
+                    if (level === 1) {
+                      return <h2 key={index} className="text-2xl font-bold text-orange-500 mt-6 mb-3">{headerText}</h2>;
+                    } else if (level === 2) {
+                      return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{headerText}</h3>;
+                    } else {
+                      return <h4 key={index} className="text-lg font-medium text-foreground mt-3 mb-2">{headerText}</h4>;
+                    }
+                  }
+                  
+                  // Main bullet points (starts with -)
+                  if (line.trim().startsWith('-')) {
+                    return (
+                      <div key={index} className="flex gap-3 items-start">
+                        <span className="text-orange-500 text-xl mt-0.5">•</span>
+                        <p className="text-base font-medium leading-relaxed">{cleanedLine.replace(/^-\s*/, '')}</p>
+                      </div>
+                    );
+                  }
+                  
+                  // Sub-points (indented lines)
+                  if (line.startsWith('  ') || line.startsWith('\t')) {
+                    return (
+                      <div key={index} className="flex gap-3 items-start ml-8">
+                        <span className="text-orange-400 text-sm mt-1">◦</span>
+                        <p className="text-sm leading-relaxed text-muted-foreground">{cleanedLine}</p>
+                      </div>
+                    );
+                  }
+                  
+                  // Regular paragraphs
+                  if (cleanedLine) {
+                    return <p key={index} className="text-base leading-relaxed">{cleanedLine}</p>;
+                  }
+                  
+                  return null;
+                })}
+              </div>
             ) : (
               <p className="text-muted-foreground">No bullet points generated yet</p>
             )}
@@ -345,16 +383,6 @@ export const AiNoteGenerator = () => {
               </div>
             ) : (
               <p className="text-muted-foreground">No mindmap generated yet</p>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="summary">
-          <div className="prose prose-sm max-w-none bg-background/50 p-4 rounded-lg border">
-            {summary ? (
-              <pre className="whitespace-pre-wrap font-sans">{summary}</pre>
-            ) : (
-              <p className="text-muted-foreground">No summary generated yet</p>
             )}
           </div>
         </TabsContent>
