@@ -199,40 +199,30 @@ export const AiNoteGenerator = () => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={() => generateNotes('bullets')}
-              disabled={isGenerating}
-              className="bg-gradient-to-r from-orange-500 to-orange-600"
-            >
-              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Lightbulb className="h-4 w-4 mr-2" />}
-              Bullet Points
-            </Button>
-            <Button
-              onClick={() => generateNotes('flashcards')}
-              disabled={isGenerating}
-              variant="outline"
-            >
-              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
-              Flashcards
-            </Button>
-            <Button
-              onClick={() => generateNotes('mindmap')}
-              disabled={isGenerating}
-              variant="outline"
-            >
-              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Brain className="h-4 w-4 mr-2" />}
-              Mindmap
-            </Button>
-            <Button
-              onClick={() => generateNotes('summary')}
-              disabled={isGenerating}
-              variant="outline"
-            >
-              {isGenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileStack className="h-4 w-4 mr-2" />}
-              Summary Sheet
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              if (activeTab === 'bullets') generateNotes('bullets');
+              else if (activeTab === 'flashcards') generateNotes('flashcards');
+              else if (activeTab === 'mindmap') generateNotes('mindmap');
+              else if (activeTab === 'summary') generateNotes('summary');
+            }}
+            disabled={isGenerating || !content.trim()}
+            className="w-full bg-gradient-to-r from-orange-500 to-orange-600"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Brain className="h-4 w-4 mr-2" />
+                Generate {activeTab === 'bullets' ? 'Bullet Points' : 
+                         activeTab === 'flashcards' ? 'Flashcards' :
+                         activeTab === 'mindmap' ? 'Mindmap' : 'Summary'}
+              </>
+            )}
+          </Button>
         </TabsContent>
 
         <TabsContent value="bullets">
