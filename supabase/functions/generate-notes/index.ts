@@ -29,13 +29,21 @@ serve(async (req) => {
         break;
       
       case 'flashcards':
-        systemPrompt = 'You are an expert at creating effective study flashcards. Create question-answer pairs that test understanding of key concepts.';
-        userPrompt = `Create 10-15 flashcards from this content. Return them as a JSON array with "question" and "answer" fields. Focus on important concepts, definitions, and facts:\n\n${content}`;
+        systemPrompt = 'You are an expert at creating effective study flashcards. Create question-answer pairs that test understanding of key concepts. IMPORTANT: Return ONLY a valid JSON array, no other text.';
+        userPrompt = `Create 10-15 flashcards from this content. Return ONLY a JSON array with this exact format (no markdown, no code blocks, just the JSON):
+[{"question": "What is...", "answer": "..."}]
+
+Content:
+${content}`;
         break;
       
       case 'mindmap':
-        systemPrompt = 'You are an expert at creating structured mindmaps from educational content. Organize information hierarchically with a central topic and branches.';
-        userPrompt = `Create a mindmap structure from this content. Return it as JSON with a "central" topic and "branches" array, where each branch has a "title" and "subtopics" array:\n\n${content}`;
+        systemPrompt = 'You are an expert at creating structured mindmaps from educational content. Organize information hierarchically with a central topic and branches. IMPORTANT: Return ONLY a valid JSON object, no other text.';
+        userPrompt = `Create a mindmap structure from this content. Return ONLY a JSON object with this exact format (no markdown, no code blocks, just the JSON):
+{"central": "Main Topic", "branches": [{"title": "Branch 1", "subtopics": ["subtopic1", "subtopic2"]}, {"title": "Branch 2", "subtopics": ["subtopic1", "subtopic2"]}]}
+
+Content:
+${content}`;
         break;
       
       case 'summary':
@@ -86,7 +94,38 @@ serve(async (req) => {
     const data = await response.json();
     const generatedContent = data.choices[0].message.content;
 
-    console.log('Generated notes successfully');
+    console.log(`Generated ${type} successfully, length: ${generatedContent.length}`);
+    
+    // For JSON types, try to clean and validate the response
+    if (type === 'flashcards' || type === 'mindmap') {
+      console.log(`Raw ${type} response:`, generatedContent.substring(0, 200));
+      
+      // Remove markdown code blocks if present
+      let cleanedContent = generatedContent.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+      } else if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\n?/g, '');
+      }
+      
+      // Try to parse to validate
+      try {
+        const parsed = JSON.parse(cleanedContent);
+        console.log(`Successfully parsed ${type}:`, parsed);
+        return new Response(JSON.stringify({ content: cleanedContent }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (parseError) {
+        console.error(`Failed to parse ${type} JSON:`, parseError);
+        console.error('Content that failed to parse:', cleanedContent);
+        return new Response(JSON.stringify({ 
+          content: cleanedContent,
+          warning: 'Generated content may not be valid JSON'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     return new Response(JSON.stringify({ content: generatedContent }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
