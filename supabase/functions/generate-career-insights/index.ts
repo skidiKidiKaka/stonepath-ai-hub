@@ -29,15 +29,19 @@ ${answersText}
 
 Generate a JSON response with:
 1. A personality type (creative, concise label like "Strategic Innovator", "Practical Problem-Solver")
-2. Detailed feedback (2-3 paragraphs explaining their strengths, work style, and what motivates them)
-3. 5-6 recommended career paths that match their personality
-4. An inspiring quote that resonates with their type
-5. 5-6 school clubs they should join (common clubs like Debate Club, Student Government, Drama Club, Science Club, etc.)
+2. SHORT feedback (2-3 sentences max, casual and lighthearted with witty remarks or humor - make it FUN!)
+3. 5-6 personality traits/adjectives that describe them (single words like "Analytical", "Creative", "Empathetic", etc.)
+4. 4 key strengths with scores out of 10 (e.g., "Creativity": 9, "Logic": 7, "Teamwork": 8, "Leadership": 6)
+5. 5-6 recommended career paths that match their personality
+6. 5-6 school clubs they should join (common clubs like Debate Club, Student Government, Drama Club, Science Club, etc.)
+7. A short inspiring quote that resonates with their type
 
 Return ONLY valid JSON in this exact format:
 {
   "resultType": "string",
   "feedback": "string",
+  "traits": ["trait1", "trait2", "trait3", "trait4", "trait5"],
+  "strengths": { "strengthName1": number, "strengthName2": number, "strengthName3": number, "strengthName4": number },
   "recommendedCareers": ["career1", "career2", "career3", "career4", "career5"],
   "recommendedClubs": ["club1", "club2", "club3", "club4", "club5"],
   "quote": "string"

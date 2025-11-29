@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import { QuizGame } from "@/components/QuizGame";
 import {
@@ -26,6 +27,8 @@ type QuizAnswer = {
 type CareerResult = {
   resultType: string;
   feedback: string;
+  traits?: string[];
+  strengths?: { [key: string]: number };
   recommendedCareers: string[];
   recommendedClubs: string[];
   quote: string;
@@ -530,13 +533,50 @@ const Career = () => {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
+                {result?.traits && result.traits.length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-orange-500" />
+                      Your Personality Traits
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {result.traits.map((trait, index) => (
+                        <Badge key={index} variant="secondary" className="px-3 py-1 text-sm">
+                          {trait}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div className="p-4 bg-orange-500/10 rounded-lg">
                   <p className="text-sm italic">"{result?.quote}"</p>
                 </div>
+                
                 <div>
-                  <h4 className="font-semibold mb-2">Personality Feedback</h4>
+                  <h4 className="font-semibold mb-2">The Verdict</h4>
                   <p className="text-muted-foreground">{result?.feedback}</p>
                 </div>
+
+                {result?.strengths && Object.keys(result.strengths).length > 0 && (
+                  <div>
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <Brain className="w-4 h-4 text-orange-500" />
+                      Your Strength Profile
+                    </h4>
+                    <div className="space-y-3">
+                      {Object.entries(result.strengths).map(([strength, score]) => (
+                        <div key={strength} className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium">{strength}</span>
+                            <span className="text-sm text-orange-500 font-semibold">{score}/10</span>
+                          </div>
+                          <Progress value={score * 10} className="h-2" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
