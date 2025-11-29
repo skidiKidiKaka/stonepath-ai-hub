@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.generate-notes]
 verify_jwt = false
+
+[functions.interview-coach]
+verify_jwt = false

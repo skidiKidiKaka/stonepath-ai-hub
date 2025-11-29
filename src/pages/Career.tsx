@@ -1,9 +1,12 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2, Brain } from "lucide-react";
+import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2, Brain, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ResumeBuilder } from "@/components/ResumeBuilder";
 import { QuizGame } from "@/components/QuizGame";
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from "recharts";
@@ -15,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -176,6 +179,14 @@ const Career = () => {
   const [selectedCareer, setSelectedCareer] = useState<string | null>(null);
   const [careerDetails, setCareerDetails] = useState<string>("");
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+  
+  // Interview prep state
+  const [isInterviewPrepOpen, setIsInterviewPrepOpen] = useState(false);
+  const [interviewMode, setInterviewMode] = useState<"practice" | "guidance">("guidance");
+  const [interviewMessages, setInterviewMessages] = useState<Array<{role: string, content: string}>>([]);
+  const [userInterviewInput, setUserInterviewInput] = useState("");
+  const [isSendingInterview, setIsSendingInterview] = useState(false);
+  const chatInterviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -296,6 +307,70 @@ const Career = () => {
     setResult(null);
     setIsGenerating(false);
   };
+
+  const handleStartInterviewPrep = (mode: "practice" | "guidance") => {
+    setInterviewMode(mode);
+    setInterviewMessages([]);
+    setUserInterviewInput("");
+    
+    const welcomeMessage = mode === "practice" 
+      ? "Hi! I'm your interview coach. I'll ask you common interview questions and provide feedback. Ready to practice? Let's start with: Tell me about yourself and your background."
+      : "Hi! I'm here to help you prepare for interviews. Ask me anything about interview techniques, common questions, or how to present yourself confidently. What would you like to know?";
+    
+    setInterviewMessages([{ role: "assistant", content: welcomeMessage }]);
+  };
+
+  const handleSendInterviewMessage = async () => {
+    if (!userInterviewInput.trim() || isSendingInterview) return;
+
+    const newUserMessage = { role: "user", content: userInterviewInput };
+    setInterviewMessages(prev => [...prev, newUserMessage]);
+    setUserInterviewInput("");
+    setIsSendingInterview(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-coach', {
+        body: {
+          messages: interviewMessages,
+          userMessage: userInterviewInput,
+          mode: interviewMode,
+          careerPath: result?.recommendedCareers[0]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        setInterviewMessages(prev => [...prev, { role: "assistant", content: data.message }]);
+      }
+    } catch (error: any) {
+      console.error('Error sending interview message:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive",
+      });
+      setInterviewMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsSendingInterview(false);
+    }
+  };
+
+  const handleResetInterviewChat = () => {
+    const welcomeMessage = interviewMode === "practice" 
+      ? "Let's continue practicing! Here's another question: Describe a challenging situation you faced and how you overcame it."
+      : "What else would you like to know about interview preparation?";
+    
+    setInterviewMessages([{ role: "assistant", content: welcomeMessage }]);
+    setUserInterviewInput("");
+  };
+
+  // Auto-scroll for interview chat
+  useEffect(() => {
+    if (chatInterviewRef.current) {
+      chatInterviewRef.current.scrollTop = chatInterviewRef.current.scrollHeight;
+    }
+  }, [interviewMessages, isSendingInterview]);
 
   // Fallback static result for errors
   const calculateResult = (quizAnswers: QuizAnswer[]): CareerResult => {
@@ -428,8 +503,13 @@ const Career = () => {
             <CardContent>
               <div className="space-y-2">
                 <ResumeBuilder />
-                <Button variant="outline" className="w-full justify-start">
-                  Interview Prep Guide
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => setIsInterviewPrepOpen(true)}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  AI Interview Coach
                 </Button>
               </div>
             </CardContent>
@@ -743,6 +823,155 @@ const Career = () => {
             ) : (
               <div className="prose prose-sm max-w-none">
                 <p className="whitespace-pre-wrap text-muted-foreground">{careerDetails}</p>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isInterviewPrepOpen} onOpenChange={setIsInterviewPrepOpen}>
+          <DialogContent className="max-w-3xl max-h-[85vh]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl flex items-center gap-2">
+                <MessageSquare className="w-6 h-6 text-orange-500" />
+                AI Interview Coach
+              </DialogTitle>
+              <DialogDescription>
+                Practice interviews or get guidance from your personal AI coach
+              </DialogDescription>
+            </DialogHeader>
+            
+            {interviewMessages.length === 0 ? (
+              <div className="space-y-6 py-4">
+                <p className="text-muted-foreground text-center">
+                  Choose how you'd like to prepare for your interviews:
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 transition-colors"
+                    onClick={() => handleStartInterviewPrep("practice")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-orange-500" />
+                        Practice Mode
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        I'll ask you real interview questions and provide feedback on your answers. Great for building confidence!
+                      </p>
+                      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        <li>• Get asked common interview questions</li>
+                        <li>• Receive constructive feedback</li>
+                        <li>• Improve your responses</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 transition-colors"
+                    onClick={() => handleStartInterviewPrep("guidance")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-orange-500" />
+                        Guidance Mode
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Ask me anything about interviews. I'll provide tips, strategies, and advice to help you succeed.
+                      </p>
+                      <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                        <li>• Learn interview techniques</li>
+                        <li>• Get preparation strategies</li>
+                        <li>• Ask specific questions</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col h-[500px]">
+                <Tabs value={interviewMode} onValueChange={(v) => setInterviewMode(v as "practice" | "guidance")} className="mb-3">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="practice" disabled={interviewMessages.length > 1}>
+                      Practice Mode
+                    </TabsTrigger>
+                    <TabsTrigger value="guidance" disabled={interviewMessages.length > 1}>
+                      Guidance Mode
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                <ScrollArea className="flex-1 pr-3 mb-3">
+                  <div className="space-y-4" ref={chatInterviewRef}>
+                    {interviewMessages.map((msg, idx) => (
+                      <div
+                        key={idx}
+                        className={`p-4 rounded-lg ${
+                          msg.role === 'user'
+                            ? 'bg-orange-500 text-white ml-8'
+                            : 'bg-muted mr-8'
+                        }`}
+                      >
+                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</div>
+                      </div>
+                    ))}
+                    {isSendingInterview && (
+                      <div className="p-4 rounded-lg bg-muted mr-8">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                <div className="space-y-2 border-t pt-3">
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder={interviewMode === "practice" ? "Type your answer here..." : "Ask me about interviews, body language, common questions, etc."}
+                      value={userInterviewInput}
+                      onChange={(e) => setUserInterviewInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendInterviewMessage();
+                        }
+                      }}
+                      className="min-h-[80px] resize-none"
+                      disabled={isSendingInterview}
+                    />
+                    <Button
+                      onClick={handleSendInterviewMessage}
+                      disabled={!userInterviewInput.trim() || isSendingInterview}
+                      className="self-end"
+                      size="lg"
+                    >
+                      Send
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={handleResetInterviewChat}
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      New Question
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setIsInterviewPrepOpen(false);
+                        setInterviewMessages([]);
+                      }}
+                      variant="secondary"
+                      size="sm"
+                      className="flex-1"
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
           </DialogContent>
