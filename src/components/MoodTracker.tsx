@@ -97,6 +97,7 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
   const [moodLevel, setMoodLevel] = useState<MoodLevel>(3);
   const [selectedFeelings, setSelectedFeelings] = useState<string[]>([]);
   const [selectedImpacts, setSelectedImpacts] = useState<string[]>([]);
+  const [isGeneratingTips, setIsGeneratingTips] = useState(false);
   const { toast } = useToast();
 
   const toggleFeeling = (feeling: string) => {
@@ -136,6 +137,8 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
         return;
       }
       
+      setIsGeneratingTips(true);
+      
       // Save mood entry to database
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -154,17 +157,50 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
             title: "Failed to save mood entry",
             variant: "destructive"
           });
+          setIsGeneratingTips(false);
           return;
         }
-
-        toast({
-          title: "Mood logged successfully!",
-          description: "Your wellness score has been updated."
-        });
       }
       
-      const tips = getTipsBySelection(moodLevel, selectedFeelings, selectedImpacts);
-      onComplete(moodLevel, selectedFeelings, selectedImpacts, tips);
+      // Generate personalized AI tips
+      try {
+        const { data: tipsData, error: tipsError } = await supabase.functions.invoke('generate-mood-tips', {
+          body: { 
+            moodLevel, 
+            feelings: selectedFeelings, 
+            impacts: selectedImpacts 
+          }
+        });
+
+        if (tipsError) {
+          console.error("Error generating tips:", tipsError);
+          // Fallback to static tips if AI fails
+          const tips = getTipsBySelection(moodLevel, selectedFeelings, selectedImpacts);
+          toast({
+            title: "Mood logged successfully!",
+            description: "Using standard wellness tips."
+          });
+          onComplete(moodLevel, selectedFeelings, selectedImpacts, tips);
+        } else {
+          toast({
+            title: "Mood logged successfully!",
+            description: "Your personalized wellness tips are ready."
+          });
+          onComplete(moodLevel, selectedFeelings, selectedImpacts, tipsData.tips);
+        }
+      } catch (error) {
+        console.error("Error generating tips:", error);
+        // Fallback to static tips
+        const tips = getTipsBySelection(moodLevel, selectedFeelings, selectedImpacts);
+        toast({
+          title: "Mood logged successfully!",
+          description: "Using standard wellness tips."
+        });
+        onComplete(moodLevel, selectedFeelings, selectedImpacts, tips);
+      } finally {
+        setIsGeneratingTips(false);
+      }
+      
       handleClose();
     }
   };
@@ -304,10 +340,18 @@ export const MoodTracker = ({ open, onClose, onComplete }: MoodTrackerProps) => 
             </div>
 
             <Button 
-              onClick={handleNext} 
-              className="w-full py-5 text-base bg-purple-600 hover:bg-purple-700"
+              onClick={handleNext}
+              disabled={isGeneratingTips}
+              className="w-full py-5 text-base bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg disabled:opacity-50"
             >
-              Done
+              {isGeneratingTips ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generating personalized tips...
+                </span>
+              ) : (
+                "Done"
+              )}
             </Button>
           </div>
         )}
