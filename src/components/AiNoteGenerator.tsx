@@ -107,12 +107,10 @@ export const AiNoteGenerator = () => {
 
       if (type === 'bullets') {
         setBullets(data.content);
-        setActiveTab('bullets');
       } else if (type === 'flashcards') {
         try {
           const parsed = JSON.parse(data.content);
           setFlashcards(parsed);
-          setActiveTab('flashcards');
         } catch {
           setFlashcards([]);
           toast({
@@ -125,7 +123,6 @@ export const AiNoteGenerator = () => {
         try {
           const parsed = JSON.parse(data.content);
           setMindmap(parsed);
-          setActiveTab('mindmap');
         } catch {
           setMindmap(null);
           toast({
@@ -136,12 +133,71 @@ export const AiNoteGenerator = () => {
         }
       } else if (type === 'summary') {
         setSummary(data.content);
-        setActiveTab('summary');
+      }
+    } catch (error) {
+      console.error('Error generating notes:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate notes",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const generateAllNotes = async () => {
+    if (!content.trim()) {
+      toast({
+        title: "No content",
+        description: "Please enter or upload content first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    
+    try {
+      // Generate all 4 types in parallel
+      const [bulletsRes, flashcardsRes, mindmapRes, summaryRes] = await Promise.all([
+        supabase.functions.invoke('generate-notes', { body: { content, type: 'bullets' } }),
+        supabase.functions.invoke('generate-notes', { body: { content, type: 'flashcards' } }),
+        supabase.functions.invoke('generate-notes', { body: { content, type: 'mindmap' } }),
+        supabase.functions.invoke('generate-notes', { body: { content, type: 'summary' } })
+      ]);
+
+      // Process bullets
+      if (!bulletsRes.error && bulletsRes.data) {
+        setBullets(bulletsRes.data.content);
+      }
+
+      // Process flashcards
+      if (!flashcardsRes.error && flashcardsRes.data) {
+        try {
+          const parsed = JSON.parse(flashcardsRes.data.content);
+          setFlashcards(parsed);
+        } catch {
+          setFlashcards([]);
+        }
+      }
+
+      // Process mindmap
+      if (!mindmapRes.error && mindmapRes.data) {
+        try {
+          const parsed = JSON.parse(mindmapRes.data.content);
+          setMindmap(parsed);
+        } catch {
+          setMindmap(null);
+        }
+      }
+
+      // Process summary
+      if (!summaryRes.error && summaryRes.data) {
+        setSummary(summaryRes.data.content);
       }
 
       toast({
         title: "Success",
-        description: "Notes generated successfully",
+        description: "All notes generated successfully",
       });
     } catch (error) {
       console.error('Error generating notes:', error);
@@ -200,21 +256,7 @@ export const AiNoteGenerator = () => {
           </div>
 
           <Button
-            onClick={() => {
-              // If on input tab, default to bullets and switch to bullets tab
-              if (activeTab === 'input') {
-                generateNotes('bullets');
-                setActiveTab('bullets');
-              } else if (activeTab === 'bullets') {
-                generateNotes('bullets');
-              } else if (activeTab === 'flashcards') {
-                generateNotes('flashcards');
-              } else if (activeTab === 'mindmap') {
-                generateNotes('mindmap');
-              } else if (activeTab === 'summary') {
-                generateNotes('summary');
-              }
-            }}
+            onClick={generateAllNotes}
             disabled={isGenerating || !content.trim()}
             className="w-full bg-gradient-to-r from-orange-500 to-orange-600"
           >
@@ -226,10 +268,7 @@ export const AiNoteGenerator = () => {
             ) : (
               <>
                 <Brain className="h-4 w-4 mr-2" />
-                {activeTab === 'input' ? 'Generate Notes' :
-                 `Generate ${activeTab === 'bullets' ? 'Bullet Points' : 
-                           activeTab === 'flashcards' ? 'Flashcards' :
-                           activeTab === 'mindmap' ? 'Mindmap' : 'Summary'}`}
+                Generate
               </>
             )}
           </Button>
