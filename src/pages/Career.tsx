@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2, Brain, MessageSquare } from "lucide-react";
+import { ArrowLeft, Briefcase, Target, TrendingUp, FileText, Award, Sparkles, Loader2, Brain, MessageSquare, Lightbulb, Users, BookOpen, Star, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -186,6 +186,9 @@ const Career = () => {
   const [interviewMessages, setInterviewMessages] = useState<Array<{role: string, content: string}>>([]);
   const [userInterviewInput, setUserInterviewInput] = useState("");
   const [isSendingInterview, setIsSendingInterview] = useState(false);
+  const [targetRole, setTargetRole] = useState("");
+  const [showRoleInput, setShowRoleInput] = useState(false);
+  const [selectedGuidanceTopic, setSelectedGuidanceTopic] = useState<string | null>(null);
   const chatInterviewRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -312,12 +315,82 @@ const Career = () => {
     setInterviewMode(mode);
     setInterviewMessages([]);
     setUserInterviewInput("");
+    setSelectedGuidanceTopic(null);
     
-    const welcomeMessage = mode === "practice" 
-      ? "Hi! I'm your interview coach. I'll ask you common interview questions and provide feedback. Ready to practice? Let's start with: Tell me about yourself and your background."
-      : "Hi! I'm here to help you prepare for interviews. Ask me anything about interview techniques, common questions, or how to present yourself confidently. What would you like to know?";
-    
-    setInterviewMessages([{ role: "assistant", content: welcomeMessage }]);
+    if (mode === "practice") {
+      setShowRoleInput(true);
+    }
+  };
+
+  const handleStartPractice = async () => {
+    if (!targetRole.trim()) {
+      toast({
+        title: "Role Required",
+        description: "Please enter the role you're interviewing for.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setShowRoleInput(false);
+    setIsSendingInterview(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-coach', {
+        body: {
+          messages: [],
+          userMessage: `I want to practice for a ${targetRole} role.`,
+          mode: "practice",
+          careerPath: targetRole
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        setInterviewMessages([{ role: "assistant", content: data.message }]);
+      }
+    } catch (error: any) {
+      console.error('Error starting practice:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start practice. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingInterview(false);
+    }
+  };
+
+  const handleSelectGuidanceTopic = async (topic: string) => {
+    setSelectedGuidanceTopic(topic);
+    setIsSendingInterview(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('interview-coach', {
+        body: {
+          messages: [],
+          userMessage: `Tell me about ${topic}`,
+          mode: "guidance",
+          careerPath: result?.recommendedCareers[0]
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.message) {
+        setInterviewMessages([{ role: "assistant", content: data.message }]);
+      }
+    } catch (error: any) {
+      console.error('Error getting guidance:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to get guidance. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingInterview(false);
+    }
   };
 
   const handleSendInterviewMessage = async () => {
@@ -334,7 +407,7 @@ const Career = () => {
           messages: interviewMessages,
           userMessage: userInterviewInput,
           mode: interviewMode,
-          careerPath: result?.recommendedCareers[0]
+          careerPath: interviewMode === "practice" ? targetRole : result?.recommendedCareers[0]
         }
       });
 
@@ -357,11 +430,14 @@ const Career = () => {
   };
 
   const handleResetInterviewChat = () => {
-    const welcomeMessage = interviewMode === "practice" 
-      ? "Let's continue practicing! Here's another question: Describe a challenging situation you faced and how you overcame it."
-      : "What else would you like to know about interview preparation?";
-    
-    setInterviewMessages([{ role: "assistant", content: welcomeMessage }]);
+    if (interviewMode === "practice") {
+      setInterviewMessages([]);
+      setTargetRole("");
+      setShowRoleInput(true);
+    } else {
+      setInterviewMessages([]);
+      setSelectedGuidanceTopic(null);
+    }
     setUserInterviewInput("");
   };
 
@@ -829,30 +905,31 @@ const Career = () => {
         </Dialog>
 
         <Dialog open={isInterviewPrepOpen} onOpenChange={setIsInterviewPrepOpen}>
-          <DialogContent className="max-w-3xl max-h-[85vh]">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-2xl flex items-center gap-2">
                 <MessageSquare className="w-6 h-6 text-orange-500" />
                 AI Interview Coach
               </DialogTitle>
               <DialogDescription>
-                Practice interviews or get guidance from your personal AI coach
+                {interviewMode === "practice" ? "Practice real interviews with instant AI feedback" : "Explore comprehensive interview guidance"}
               </DialogDescription>
             </DialogHeader>
             
-            {interviewMessages.length === 0 ? (
+            {/* Initial mode selection */}
+            {interviewMessages.length === 0 && !showRoleInput && !selectedGuidanceTopic ? (
               <div className="space-y-6 py-4">
                 <p className="text-muted-foreground text-center">
                   Choose how you'd like to prepare for your interviews:
                 </p>
                 <div className="grid md:grid-cols-2 gap-4">
                   <Card 
-                    className="cursor-pointer hover:border-orange-500 transition-colors"
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-lg transition-all duration-300 group"
                     onClick={() => handleStartInterviewPrep("practice")}
                   >
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Brain className="w-5 h-5 text-orange-500" />
+                        <Brain className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
                         Practice Mode
                       </CardTitle>
                     </CardHeader>
@@ -869,40 +946,239 @@ const Career = () => {
                   </Card>
 
                   <Card 
-                    className="cursor-pointer hover:border-orange-500 transition-colors"
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-lg transition-all duration-300 group"
                     onClick={() => handleStartInterviewPrep("guidance")}
                   >
                     <CardHeader>
                       <CardTitle className="text-lg flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-orange-500" />
+                        <Sparkles className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
                         Guidance Mode
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-muted-foreground">
-                        Ask me anything about interviews. I'll provide tips, strategies, and advice to help you succeed.
+                        Explore interactive guidance on all aspects of interviewing. Learn at your own pace!
                       </p>
                       <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
                         <li>• Learn interview techniques</li>
-                        <li>• Get preparation strategies</li>
-                        <li>• Ask specific questions</li>
+                        <li>• Master body language & presentation</li>
+                        <li>• Discover insider tips & strategies</li>
                       </ul>
                     </CardContent>
                   </Card>
                 </div>
               </div>
-            ) : (
+            ) : null}
+
+            {/* Role input for practice mode */}
+            {showRoleInput && (
+              <div className="space-y-6 py-4">
+                <div className="text-center space-y-3 mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-orange-500/10 mb-2">
+                    <Target className="w-8 h-8 text-orange-500" />
+                  </div>
+                  <h3 className="text-xl font-semibold">What role are you interviewing for?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Tell me your target position so I can tailor questions specific to your role
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="e.g., Software Engineer, Marketing Manager, Data Analyst..."
+                    value={targetRole}
+                    onChange={(e) => setTargetRole(e.target.value)}
+                    className="min-h-[60px] text-center text-lg"
+                    autoFocus
+                  />
+                  
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => {
+                        setShowRoleInput(false);
+                        setIsInterviewPrepOpen(false);
+                      }}
+                      variant="outline"
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleStartPractice}
+                      disabled={!targetRole.trim() || isSendingInterview}
+                      className="flex-1"
+                    >
+                      {isSendingInterview ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Starting...
+                        </>
+                      ) : (
+                        <>
+                          Start Practice
+                          <Zap className="w-4 h-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Guidance mode - topic selection */}
+            {interviewMode === "guidance" && interviewMessages.length === 0 && !selectedGuidanceTopic && (
+              <div className="space-y-6 py-4">
+                <div className="text-center space-y-3 mb-6">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-orange-500/20 to-orange-600/20 mb-2">
+                    <Sparkles className="w-8 h-8 text-orange-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                    Your Interview Success Toolkit
+                  </h3>
+                  <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+                    Choose a topic to dive deep into proven strategies and insider tips
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("common interview questions and how to answer them")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <MessageSquare className="w-5 h-5 text-orange-500 group-hover:rotate-12 transition-transform" />
+                        Common Questions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Master the most frequently asked questions and learn winning response strategies
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("body language and presentation tips")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Users className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                        Body Language
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Perfect your non-verbal communication and make a powerful first impression
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("the STAR method for behavioral questions")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Star className="w-5 h-5 text-orange-500 group-hover:rotate-180 transition-transform duration-500" />
+                        STAR Method
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Structure compelling stories that showcase your skills and achievements
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("how to research companies effectively")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <BookOpen className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                        Company Research
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Learn what to research and how to use it to stand out from other candidates
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("questions to ask interviewers")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Lightbulb className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                        Your Questions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Ask thoughtful questions that show engagement and help you assess the role
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="cursor-pointer hover:border-orange-500 hover:shadow-xl hover:scale-105 transition-all duration-300 group bg-gradient-to-br from-background to-orange-500/5"
+                    onClick={() => handleSelectGuidanceTopic("handling difficult or tricky questions")}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
+                        Difficult Questions
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-xs text-muted-foreground">
+                        Navigate tough questions with confidence and turn challenges into opportunities
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div className="flex justify-center pt-4">
+                  <Button
+                    onClick={() => {
+                      setIsInterviewPrepOpen(false);
+                      setInterviewMode("guidance");
+                    }}
+                    variant="outline"
+                  >
+                    Back to Mode Selection
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Chat interface for both modes */}
+            {interviewMessages.length > 0 && (
               <div className="flex flex-col h-[500px]">
-                <Tabs value={interviewMode} onValueChange={(v) => setInterviewMode(v as "practice" | "guidance")} className="mb-3">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="practice" disabled={interviewMessages.length > 1}>
-                      Practice Mode
-                    </TabsTrigger>
-                    <TabsTrigger value="guidance" disabled={interviewMessages.length > 1}>
-                      Guidance Mode
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                <div className="mb-3 p-3 bg-muted/50 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {interviewMode === "practice" ? (
+                      <>
+                        <Brain className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium">Practice: {targetRole}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4 text-orange-500" />
+                        <span className="text-sm font-medium">Guidance Mode</span>
+                      </>
+                    )}
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {interviewMessages.length} messages
+                  </Badge>
+                </div>
 
                 <ScrollArea className="flex-1 pr-3 mb-3">
                   <div className="space-y-4" ref={chatInterviewRef}>
@@ -911,16 +1187,16 @@ const Career = () => {
                         key={idx}
                         className={`p-4 rounded-lg ${
                           msg.role === 'user'
-                            ? 'bg-orange-500 text-white ml-8'
-                            : 'bg-muted mr-8'
+                            ? 'bg-orange-500 text-white ml-8 shadow-md'
+                            : 'bg-muted mr-8 border border-border'
                         }`}
                       >
                         <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                       </div>
                     ))}
                     {isSendingInterview && (
-                      <div className="p-4 rounded-lg bg-muted mr-8">
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                      <div className="p-4 rounded-lg bg-muted mr-8 border border-border">
+                        <Loader2 className="w-4 h-4 animate-spin text-orange-500" />
                       </div>
                     )}
                   </div>
@@ -929,7 +1205,7 @@ const Career = () => {
                 <div className="space-y-2 border-t pt-3">
                   <div className="flex gap-2">
                     <Textarea
-                      placeholder={interviewMode === "practice" ? "Type your answer here..." : "Ask me about interviews, body language, common questions, etc."}
+                      placeholder={interviewMode === "practice" ? "Type your answer here..." : "Ask follow-up questions or explore more..."}
                       value={userInterviewInput}
                       onChange={(e) => setUserInterviewInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -947,7 +1223,11 @@ const Career = () => {
                       className="self-end"
                       size="lg"
                     >
-                      Send
+                      {isSendingInterview ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Send"
+                      )}
                     </Button>
                   </div>
                   <div className="flex gap-2">
@@ -957,12 +1237,15 @@ const Career = () => {
                       size="sm"
                       className="flex-1"
                     >
-                      New Question
+                      {interviewMode === "practice" ? "New Practice Session" : "Back to Topics"}
                     </Button>
                     <Button 
                       onClick={() => {
                         setIsInterviewPrepOpen(false);
                         setInterviewMessages([]);
+                        setShowRoleInput(false);
+                        setSelectedGuidanceTopic(null);
+                        setTargetRole("");
                       }}
                       variant="secondary"
                       size="sm"
