@@ -201,10 +201,19 @@ export const AiNoteGenerator = () => {
 
           <Button
             onClick={() => {
-              if (activeTab === 'bullets') generateNotes('bullets');
-              else if (activeTab === 'flashcards') generateNotes('flashcards');
-              else if (activeTab === 'mindmap') generateNotes('mindmap');
-              else if (activeTab === 'summary') generateNotes('summary');
+              // If on input tab, default to bullets and switch to bullets tab
+              if (activeTab === 'input') {
+                generateNotes('bullets');
+                setActiveTab('bullets');
+              } else if (activeTab === 'bullets') {
+                generateNotes('bullets');
+              } else if (activeTab === 'flashcards') {
+                generateNotes('flashcards');
+              } else if (activeTab === 'mindmap') {
+                generateNotes('mindmap');
+              } else if (activeTab === 'summary') {
+                generateNotes('summary');
+              }
             }}
             disabled={isGenerating || !content.trim()}
             className="w-full bg-gradient-to-r from-orange-500 to-orange-600"
@@ -217,9 +226,10 @@ export const AiNoteGenerator = () => {
             ) : (
               <>
                 <Brain className="h-4 w-4 mr-2" />
-                Generate {activeTab === 'bullets' ? 'Bullet Points' : 
-                         activeTab === 'flashcards' ? 'Flashcards' :
-                         activeTab === 'mindmap' ? 'Mindmap' : 'Summary'}
+                {activeTab === 'input' ? 'Generate Notes' :
+                 `Generate ${activeTab === 'bullets' ? 'Bullet Points' : 
+                           activeTab === 'flashcards' ? 'Flashcards' :
+                           activeTab === 'mindmap' ? 'Mindmap' : 'Summary'}`}
               </>
             )}
           </Button>
