@@ -27,6 +27,7 @@ type CareerResult = {
   resultType: string;
   feedback: string;
   recommendedCareers: string[];
+  recommendedClubs: string[];
   quote: string;
 };
 
@@ -104,6 +105,7 @@ const calculateResult = (answers: QuizAnswer[]): CareerResult => {
       resultType: "The Connector",
       feedback: "You thrive in social environments and excel at building relationships. Your strength lies in understanding people and facilitating collaboration.",
       recommendedCareers: ["Human Resources Manager", "Marketing Specialist", "Social Worker", "Teacher", "Event Coordinator"],
+      recommendedClubs: ["Student Government", "Peer Mentoring", "Drama Club", "Debate Team", "Community Service Club"],
       quote: "Success is best when it's shared. Your ability to connect people creates endless opportunities.",
     };
   } else if (scores.analytical === maxScore) {
@@ -111,6 +113,7 @@ const calculateResult = (answers: QuizAnswer[]): CareerResult => {
       resultType: "The Analyst",
       feedback: "You have a sharp analytical mind and love solving complex problems. Your logical approach makes you excellent at finding optimal solutions.",
       recommendedCareers: ["Data Scientist", "Software Engineer", "Financial Analyst", "Research Scientist", "Consultant"],
+      recommendedClubs: ["Math Club", "Science Olympiad", "Chess Club", "Coding Club", "Robotics Team"],
       quote: "Logic will get you from A to B. Imagination will take you everywhere. - Albert Einstein",
     };
   } else if (scores.creative === maxScore) {
@@ -118,6 +121,7 @@ const calculateResult = (answers: QuizAnswer[]): CareerResult => {
       resultType: "The Innovator",
       feedback: "You're driven by creativity and innovation. Your ability to think outside the box leads to groundbreaking ideas and unique solutions.",
       recommendedCareers: ["Graphic Designer", "Product Manager", "Entrepreneur", "Content Creator", "Architect"],
+      recommendedClubs: ["Art Club", "Drama Club", "Yearbook", "Creative Writing", "Entrepreneurship Club"],
       quote: "Creativity is intelligence having fun. Your innovative spirit will shape the future.",
     };
   } else {
@@ -125,6 +129,7 @@ const calculateResult = (answers: QuizAnswer[]): CareerResult => {
       resultType: "The Organizer",
       feedback: "You excel at creating structure and efficiency. Your organizational skills and attention to detail ensure everything runs smoothly.",
       recommendedCareers: ["Project Manager", "Operations Manager", "Business Analyst", "Supply Chain Manager", "Executive Assistant"],
+      recommendedClubs: ["Student Government", "Model UN", "Business Club", "Event Planning Committee", "National Honor Society"],
       quote: "Order is the foundation of all things. Your organizational skills create stability and success.",
     };
   }
@@ -208,6 +213,7 @@ const Career = () => {
       result_type: calculatedResult.resultType,
       feedback: calculatedResult.feedback,
       recommended_careers: calculatedResult.recommendedCareers,
+      recommended_clubs: calculatedResult.recommendedClubs || [],
       quote: calculatedResult.quote,
     });
 
@@ -284,6 +290,7 @@ const Career = () => {
         resultType: "The Connector",
         feedback: "You thrive in social environments and excel at building relationships. Your strength lies in understanding people and facilitating collaboration.",
         recommendedCareers: ["Human Resources Manager", "Marketing Specialist", "Social Worker", "Teacher", "Event Coordinator"],
+        recommendedClubs: ["Student Government", "Peer Mentoring", "Drama Club", "Debate Team", "Community Service Club"],
         quote: "Success is best when it's shared. Your ability to connect people creates endless opportunities.",
       };
     } else if (scores.analytical === maxScore) {
@@ -291,6 +298,7 @@ const Career = () => {
         resultType: "The Analyst",
         feedback: "You have a sharp analytical mind and love solving complex problems. Your logical approach makes you excellent at finding optimal solutions.",
         recommendedCareers: ["Data Scientist", "Software Engineer", "Financial Analyst", "Research Scientist", "Consultant"],
+        recommendedClubs: ["Math Club", "Science Olympiad", "Chess Club", "Coding Club", "Robotics Team"],
         quote: "Logic will get you from A to B. Imagination will take you everywhere. - Albert Einstein",
       };
     } else if (scores.creative === maxScore) {
@@ -298,6 +306,7 @@ const Career = () => {
         resultType: "The Innovator",
         feedback: "You're driven by creativity and innovation. Your ability to think outside the box leads to groundbreaking ideas and unique solutions.",
         recommendedCareers: ["Graphic Designer", "Product Manager", "Entrepreneur", "Content Creator", "Architect"],
+        recommendedClubs: ["Art Club", "Drama Club", "Yearbook", "Creative Writing", "Entrepreneurship Club"],
         quote: "Creativity is intelligence having fun. Your innovative spirit will shape the future.",
       };
     } else {
@@ -305,6 +314,7 @@ const Career = () => {
         resultType: "The Organizer",
         feedback: "You excel at creating structure and efficiency. Your organizational skills and attention to detail ensure everything runs smoothly.",
         recommendedCareers: ["Project Manager", "Operations Manager", "Business Analyst", "Supply Chain Manager", "Executive Assistant"],
+        recommendedClubs: ["Student Government", "Model UN", "Business Club", "Event Planning Committee", "National Honor Society"],
         quote: "Order is the foundation of all things. Your organizational skills create stability and success.",
       };
     }
@@ -548,6 +558,28 @@ const Career = () => {
                         <span className="font-medium">{career}</span>
                       </div>
                     </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recommended School Clubs</CardTitle>
+                <CardDescription>Clubs that align with your interests and personality</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {result?.recommendedClubs.map((club, index) => (
+                    <div
+                      key={index}
+                      className="p-4 border rounded-lg bg-card hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-orange-500" />
+                        <span className="font-medium">{club}</span>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </CardContent>
