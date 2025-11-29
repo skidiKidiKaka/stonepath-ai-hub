@@ -24,8 +24,17 @@ serve(async (req) => {
 
     switch (type) {
       case 'bullets':
-        systemPrompt = 'You are an expert at creating concise, well-organized bullet points from educational content. Extract the key concepts and organize them hierarchically.';
-        userPrompt = `Create comprehensive bullet points from this content. Use main points with sub-points where appropriate. Make them clear and study-friendly:\n\n${content}`;
+        systemPrompt = 'You are an expert at creating concise, well-organized bullet points from educational content. Extract the key concepts and organize them hierarchically. Do NOT use asterisks (*) in your output.';
+        userPrompt = `Create comprehensive bullet points from this content. Use main points with sub-points where appropriate. Make them clear and study-friendly. 
+
+IMPORTANT: 
+- Use simple dashes (-) for main points
+- Use indentation (2 spaces) for sub-points
+- Do NOT use asterisks (*) or other special characters
+- Use ## for major section headers
+
+Content:
+${content}`;
         break;
       
       case 'flashcards':
