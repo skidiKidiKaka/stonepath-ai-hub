@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { FileText, Lightbulb, Brain, FileStack, Loader2, Upload } from "lucide-react";
+import * as pdfjsLib from 'pdfjs-dist';
 
 interface Flashcard {
   question: string;
@@ -43,33 +44,28 @@ export const AiNoteGenerator = () => {
           description: "Extracting text from PDF...",
         });
 
-        // For PDF files, we need to use server-side parsing
-        const formData = new FormData();
-        formData.append('file', file);
+        // Set worker source for PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
-        // Create a temporary file path
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          try {
-            const arrayBuffer = e.target?.result as ArrayBuffer;
-            const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
-            const text = await blob.text();
-            
-            // For now, inform user that PDF parsing requires document parsing
-            toast({
-              title: "PDF Support",
-              description: "Please use .txt or .md files, or copy-paste your content directly",
-              variant: "destructive",
-            });
-          } catch (error) {
-            toast({
-              title: "Error",
-              description: "Failed to process PDF. Please use .txt or .md files",
-              variant: "destructive",
-            });
-          }
-        };
-        reader.readAsArrayBuffer(file);
+        const arrayBuffer = await file.arrayBuffer();
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        const pdf = await loadingTask.promise;
+        
+        let fullText = '';
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          fullText += pageText + '\n\n';
+        }
+
+        setContent(fullText);
+        toast({
+          title: "PDF processed",
+          description: `Extracted text from ${pdf.numPages} page(s)`,
+        });
       } else {
         const text = await file.text();
         setContent(text);
@@ -79,6 +75,7 @@ export const AiNoteGenerator = () => {
         });
       }
     } catch (error) {
+      console.error('Error reading file:', error);
       toast({
         title: "Error",
         description: "Failed to read file",
