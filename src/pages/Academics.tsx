@@ -8,6 +8,7 @@ import { AssignmentForm } from "@/components/AssignmentForm";
 import { AssignmentList } from "@/components/AssignmentList";
 import { AssignmentCalendar } from "@/components/AssignmentCalendar";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
+import { AiNoteGenerator } from "@/components/AiNoteGenerator";
 
 interface Assignment {
   id: string;
@@ -92,16 +93,19 @@ const Academics = () => {
         {loading ? (
           <div className="text-center py-8">Loading assignments...</div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-6">
-              <AssignmentList
-                assignments={assignments}
-                onAssignmentUpdated={fetchAssignments}
-              />
-              <PomodoroTimer />
-            </div>
-            <div>
-              <AssignmentCalendar assignments={assignments} />
+          <div className="space-y-6">
+            <AiNoteGenerator />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="space-y-6">
+                <AssignmentList
+                  assignments={assignments}
+                  onAssignmentUpdated={fetchAssignments}
+                />
+                <PomodoroTimer />
+              </div>
+              <div>
+                <AssignmentCalendar assignments={assignments} />
+              </div>
             </div>
           </div>
         )}
