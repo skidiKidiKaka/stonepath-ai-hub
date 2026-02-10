@@ -1,60 +1,43 @@
 
 
-## Speed Up Headspace Hangout Prompt Loading
+## Pre-load All PCT Prompts So Users Never Wait
 
 ### Problem
-Every topic selection triggers a fresh AI call (~10-20 seconds). There's no caching -- identical pillar+topic combos always regenerate from scratch.
+Right now, only 1 out of 32 pillar+topic combos is cached. The first user to pick any uncached topic still waits 10-20 seconds.
 
-### Solution: Database Prompt Cache
-
-Cache AI-generated prompts in a new `pct_prompt_cache` table. Serve cached prompts instantly and only call the AI when no cache exists or when the user explicitly requests fresh prompts.
+### Solution
+Create a new edge function `seed-pct-cache` that generates and caches prompts for all 32 combos in one go. You (as the admin) trigger it once, and after that every user gets instant results.
 
 ### What Changes
 
-**1. New database table: `pct_prompt_cache`**
-- Columns: `id`, `pillar`, `topic`, `prompts` (jsonb), `created_at`
-- Unique constraint on `(pillar, topic)` so each combo has one cached set
-- No RLS needed -- this is shared/public read data, managed by the edge function
+**1. New edge function: `seed-pct-cache`**
+- Accepts a simple POST request (no body needed)
+- Loops through all 32 pillar+topic combinations
+- For each combo, checks if it already exists in `pct_prompt_cache`
+- If not, calls the AI to generate prompts and saves them to the cache
+- Processes sequentially to avoid rate limits (with a small delay between calls)
+- Returns a summary of how many were generated vs. already cached
 
-**2. Update edge function: `generate-pct-prompts`**
-- Before calling AI, check `pct_prompt_cache` for existing prompts matching the pillar+topic
-- If found, return cached prompts immediately (sub-second response)
-- If not found, generate via AI, save to cache, then return
-- Accept an optional `fresh: true` parameter to force regeneration
+**2. One-time invocation**
+- After deploying, we call the function once to fill the cache
+- Takes ~5-10 minutes total (32 combos x ~10s each, minus any already cached)
+- After that, every topic loads instantly for all users
 
-**3. Update `PCTSession.tsx`**
-- No major changes needed (it already calls the edge function)
-- Optionally add a "Get fresh prompts" button so users can request new ones if they've seen the cached set before
-
-### Expected Result
-- First user to pick a topic: ~10-20 seconds (AI generation, same as now)
-- Every subsequent user picking the same topic: under 1 second (database read)
-- 32 pillar+topic combos total (8 pillars x 4 topics), so the entire cache fills quickly
+**3. No UI changes needed**
+- The existing flow already reads from the cache -- this just ensures the cache is fully populated
+- The "refresh" button in PCTSession still works for users who want fresh prompts
 
 ### Technical Details
 
-**New table SQL:**
-```text
-CREATE TABLE public.pct_prompt_cache (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pillar TEXT NOT NULL,
-  topic TEXT NOT NULL,
-  prompts JSONB NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(pillar, topic)
-);
+**New file:** `supabase/functions/seed-pct-cache/index.ts`
+- Hardcodes the same 32 pillar+topic combos from HeadspaceHangout.tsx
+- Uses the Supabase service role client to read/write `pct_prompt_cache`
+- Calls the Lovable AI gateway for each uncached combo
+- Adds a 2-second delay between AI calls to avoid rate limiting
+- Protected by checking for a valid authorization header
 
--- Allow edge function to read/write via service role
-ALTER TABLE public.pct_prompt_cache ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow public read" ON public.pct_prompt_cache FOR SELECT USING (true);
-```
+**Config update:** `supabase/config.toml`
+- Add `[functions.seed-pct-cache]` with `verify_jwt = false`
 
-**Edge function changes:**
-- Import Supabase client using service role key
-- Query cache before AI call
-- Upsert into cache after AI generation
+**Execution:** After deployment, we invoke it once via the edge function curl tool to populate all 32 entries.
 
-**Files modified:**
-- `supabase/functions/generate-pct-prompts/index.ts` -- add cache logic
-- `src/components/PCTSession.tsx` -- add optional "refresh prompts" button
-- New migration for `pct_prompt_cache` table
