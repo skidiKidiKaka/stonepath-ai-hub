@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,9 +10,32 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { pillar, topic, type, responses } = await req.json();
+    const { pillar, topic, type, responses, fresh } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // For prompt generation (not summary), check cache first
+    if (type !== "summary" && !fresh) {
+      const { data: cached } = await supabase
+        .from("pct_prompt_cache")
+        .select("prompts")
+        .eq("pillar", pillar)
+        .eq("topic", topic)
+        .maybeSingle();
+
+      if (cached) {
+        console.log(`Cache hit for ${pillar}/${topic}`);
+        return new Response(JSON.stringify({ prompts: cached.prompts }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      console.log(`Cache miss for ${pillar}/${topic}, generating...`);
+    }
 
     let systemPrompt: string;
     let userPrompt: string;
@@ -64,13 +88,27 @@ Return valid JSON: {"prompts": [{"question": "...", "tip": "..."}]}`;
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content || "";
 
-    // Parse JSON from the response (handle markdown code blocks)
     let parsed;
     try {
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
       parsed = JSON.parse(jsonMatch[1].trim());
     } catch {
       parsed = JSON.parse(content);
+    }
+
+    // Cache prompts (not summaries) for future use
+    if (type !== "summary" && parsed.prompts) {
+      const { error: upsertError } = await supabase
+        .from("pct_prompt_cache")
+        .upsert(
+          { pillar, topic, prompts: parsed.prompts },
+          { onConflict: "pillar,topic" }
+        );
+      if (upsertError) {
+        console.error("Cache upsert error:", upsertError);
+      } else {
+        console.log(`Cached prompts for ${pillar}/${topic}`);
+      }
     }
 
     return new Response(JSON.stringify(parsed), {
