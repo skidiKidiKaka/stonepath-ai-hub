@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { Flame, Star, Trophy } from "lucide-react";
+import { Flame, Star, Trophy, Users, UserCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface PCTStatsData {
   current_streak: number;
   total_sessions: number;
   total_points: number;
+  peer_sessions: number;
+  trusted_peers: number;
 }
 
 export const PCTStats = ({ compact = false }: { compact?: boolean }) => {
@@ -22,7 +24,25 @@ export const PCTStats = ({ compact = false }: { compact?: boolean }) => {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      setStats(data || { current_streak: 0, total_sessions: 0, total_points: 0 });
+      // Get peer stats
+      const { count: peerCount } = await supabase
+        .from("peer_connect_sessions" as any)
+        .select("id", { count: "exact", head: true })
+        .or(`user_a.eq.${user.id},user_b.eq.${user.id}`)
+        .eq("status", "completed");
+
+      const { count: trustedCount } = await supabase
+        .from("trusted_peers" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+      setStats({
+        current_streak: data?.current_streak || 0,
+        total_sessions: data?.total_sessions || 0,
+        total_points: data?.total_points || 0,
+        peer_sessions: peerCount || 0,
+        trusted_peers: trustedCount || 0,
+      });
     };
     fetchStats();
   }, []);
@@ -39,7 +59,7 @@ export const PCTStats = ({ compact = false }: { compact?: boolean }) => {
   }
 
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-3 sm:grid-cols-5 gap-4">
       <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/50">
         <Flame className="w-6 h-6 text-orange-500" />
         <span className="text-2xl font-bold">{stats.current_streak}</span>
@@ -54,6 +74,16 @@ export const PCTStats = ({ compact = false }: { compact?: boolean }) => {
         <Star className="w-6 h-6 text-yellow-500" />
         <span className="text-2xl font-bold">{stats.total_points}</span>
         <span className="text-xs text-muted-foreground">Points</span>
+      </div>
+      <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/50">
+        <Users className="w-6 h-6 text-primary" />
+        <span className="text-2xl font-bold">{stats.peer_sessions}</span>
+        <span className="text-xs text-muted-foreground">Peer Sessions</span>
+      </div>
+      <div className="flex flex-col items-center gap-1 p-4 rounded-lg bg-muted/50">
+        <UserCheck className="w-6 h-6 text-primary" />
+        <span className="text-2xl font-bold">{stats.trusted_peers}</span>
+        <span className="text-xs text-muted-foreground">Trusted Peers</span>
       </div>
     </div>
   );

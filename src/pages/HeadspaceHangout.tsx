@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, Sparkles } from "lucide-react";
+import { ArrowLeft, Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { PCTSession } from "@/components/PCTSession";
 import { PCTStats } from "@/components/PCTStats";
+import { PeerConnectLobby } from "@/components/PeerConnectLobby";
+import { PeerConnectSession } from "@/components/PeerConnectSession";
 
 const pillars = [
   { id: "mental-health", name: "Mental Health", icon: Brain, color: "from-purple-500 to-purple-600", topics: ["Managing Anxiety", "Building Self-Esteem", "Dealing with Stress", "Emotional Awareness"] },
@@ -18,13 +20,18 @@ const pillars = [
   { id: "finance", name: "Finance", icon: DollarSign, color: "from-emerald-500 to-emerald-600", topics: ["Money Mindset", "Saving Goals", "Financial Stress", "Smart Spending"] },
 ];
 
-type View = "pillars" | "topics" | "session";
+type View = "pillars" | "topics" | "session" | "peer-lobby" | "peer-session";
+type Mode = "solo" | "peer";
 
 const HeadspaceHangout = () => {
   const navigate = useNavigate();
   const [view, setView] = useState<View>("pillars");
+  const [mode, setMode] = useState<Mode>("solo");
   const [selectedPillar, setSelectedPillar] = useState<typeof pillars[0] | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string>("");
+  const [peerSessionId, setPeerSessionId] = useState<string | null>(null);
+  const [peerPrompts, setPeerPrompts] = useState<any[]>([]);
+  const [peerId, setPeerId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -34,12 +41,23 @@ const HeadspaceHangout = () => {
 
   const handlePillarSelect = (pillar: typeof pillars[0]) => {
     setSelectedPillar(pillar);
-    setView("topics");
+    if (mode === "peer") {
+      setView("peer-lobby");
+    } else {
+      setView("topics");
+    }
   };
 
   const handleTopicSelect = (topic: string) => {
     setSelectedTopic(topic);
     setView("session");
+  };
+
+  const handlePeerMatched = (sessionId: string, prompts: any[], partnerId: string) => {
+    setPeerSessionId(sessionId);
+    setPeerPrompts(prompts);
+    setPeerId(partnerId);
+    setView("peer-session");
   };
 
   return (
@@ -50,6 +68,8 @@ const HeadspaceHangout = () => {
             <Button variant="ghost" size="icon" onClick={() => {
               if (view === "session") setView("topics");
               else if (view === "topics") setView("pillars");
+              else if (view === "peer-lobby") setView("pillars");
+              else if (view === "peer-session") setView("pillars");
               else navigate("/dashboard");
             }}>
               <ArrowLeft className="w-5 h-5" />
@@ -68,10 +88,32 @@ const HeadspaceHangout = () => {
       <main className="container mx-auto px-4 py-8">
         {view === "pillars" && (
           <div className="space-y-8">
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg max-w-xs mx-auto">
+              <Button
+                variant={mode === "solo" ? "default" : "ghost"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setMode("solo")}
+              >
+                <Sparkles className="w-4 h-4 mr-1" /> Solo Reflection
+              </Button>
+              <Button
+                variant={mode === "peer" ? "default" : "ghost"}
+                size="sm"
+                className="flex-1"
+                onClick={() => setMode("peer")}
+              >
+                <Zap className="w-4 h-4 mr-1" /> Peer Connect
+              </Button>
+            </div>
+
             <PCTStats />
 
             <div>
-              <h2 className="text-xl font-bold mb-4">Choose a Pillar</h2>
+              <h2 className="text-xl font-bold mb-4">
+                {mode === "peer" ? "Pick a pillar to match on" : "Choose a Pillar"}
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {pillars.map((pillar) => {
                   const Icon = pillar.icon;
@@ -127,6 +169,25 @@ const HeadspaceHangout = () => {
             topic={selectedTopic}
             onComplete={() => { setView("pillars"); setSelectedPillar(null); }}
             onBack={() => setView("topics")}
+          />
+        )}
+
+        {view === "peer-lobby" && selectedPillar && (
+          <PeerConnectLobby
+            pillar={selectedPillar.name}
+            pillarColor={selectedPillar.color}
+            onMatched={handlePeerMatched}
+            onCancel={() => { setView("pillars"); setSelectedPillar(null); }}
+          />
+        )}
+
+        {view === "peer-session" && peerSessionId && peerId && (
+          <PeerConnectSession
+            sessionId={peerSessionId}
+            prompts={peerPrompts}
+            partnerId={peerId}
+            onComplete={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }}
+            onBack={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }}
           />
         )}
       </main>

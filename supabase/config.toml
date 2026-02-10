@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.generate-pct-prompts]
 verify_jwt = false
+
+[functions.peer-connect-match]
+verify_jwt = false
+
+[functions.generate-peer-prompts]
+verify_jwt = false
