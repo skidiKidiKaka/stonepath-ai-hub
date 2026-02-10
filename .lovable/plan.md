@@ -1,65 +1,60 @@
 
 
-## What is PCT?
+## Speed Up Headspace Hangout Prompt Loading
 
-**Peer Conversation Therapy (PCT)** is the core framework of the Stone Path Project. It's a structured, non-professional conversation model where students support each other through guided prompts inspired by CBT and DBT techniques. Key concepts:
+### Problem
+Every topic selection triggers a fresh AI call (~10-20 seconds). There's no caching -- identical pillar+topic combos always regenerate from scratch.
 
-- **Person A** (the supporter) notices a friend struggling and initiates a guided conversation with **Person B**
-- It focuses on the space *before* issues need professional help -- teaching emotional openness and communication
-- Sessions use a **bank of guided questions** organized by the 8 pillars (mental health, academics, friendships, etc.)
-- Each prompt includes tips and suggested responses; both participants press "Done" to move through
-- It's delivered through a feature called **"Headspace Hangout"** -- a gamified space with streaks, points, and rewards so it feels engaging rather than clinical
+### Solution: Database Prompt Cache
 
----
+Cache AI-generated prompts in a new `pct_prompt_cache` table. Serve cached prompts instantly and only call the AI when no cache exists or when the user explicitly requests fresh prompts.
 
-## Implementation Plan: "Headspace Hangout" (PCT Feature)
+### What Changes
 
-### Overview
+**1. New database table: `pct_prompt_cache`**
+- Columns: `id`, `pillar`, `topic`, `prompts` (jsonb), `created_at`
+- Unique constraint on `(pillar, topic)` so each combo has one cached set
+- No RLS needed -- this is shared/public read data, managed by the edge function
 
-Add a new "Headspace Hangout" page accessible from the dashboard. It will let users start guided peer conversations organized by the 8 pillars, with AI-generated prompts, a step-by-step flow, and a points/streak tracking system.
+**2. Update edge function: `generate-pct-prompts`**
+- Before calling AI, check `pct_prompt_cache` for existing prompts matching the pillar+topic
+- If found, return cached prompts immediately (sub-second response)
+- If not found, generate via AI, save to cache, then return
+- Accept an optional `fresh: true` parameter to force regeneration
 
-### What Gets Built
+**3. Update `PCTSession.tsx`**
+- No major changes needed (it already calls the edge function)
+- Optionally add a "Get fresh prompts" button so users can request new ones if they've seen the cached set before
 
-**1. New Route and Page: `/headspace-hangout`**
-- A dedicated page with the 8 pillars displayed as selectable cards
-- Each pillar leads to a set of guided conversation modules (e.g., "Managing Anxiety," "Handling Peer Pressure")
-
-**2. PCT Session Flow (Solo Reflection Mode first)**
-Since real-time peer-to-peer pairing requires significant infrastructure (matching, presence, chat), we start with a **solo guided reflection** mode that mirrors the PCT structure:
-- User selects a pillar and a topic
-- AI generates 5-7 guided prompts (inspired by CBT/DBT) for that topic
-- User reflects and writes responses to each prompt, pressing "Next" to proceed
-- At the end, AI provides a supportive summary and actionable takeaways
-- Session is saved to the database for journaling/history
-
-**3. Database Tables**
-- `pct_sessions` -- tracks each session (user, pillar, topic, started_at, completed_at, streak_count)
-- `pct_responses` -- stores individual prompt responses per session
-- `pct_streaks` -- tracks daily streaks and total points per user
-
-**4. Gamification**
-- Points awarded for completing sessions (e.g., 10 points per session)
-- Daily streak counter (consecutive days with at least 1 session)
-- Simple progress display showing total sessions, current streak, and points
-
-**5. Dashboard Integration**
-- Add a "Headspace Hangout" card to the main dashboard linking to the new page
-- Show current streak and points on the dashboard card
-
-**6. Edge Function: `generate-pct-prompts`**
-- Uses Lovable AI to generate contextual, pillar-specific guided prompts
-- System prompt instructs the AI to create CBT/DBT-inspired reflection questions appropriate for high school students
-- Also generates a supportive summary after the session completes
+### Expected Result
+- First user to pick a topic: ~10-20 seconds (AI generation, same as now)
+- Every subsequent user picking the same topic: under 1 second (database read)
+- 32 pillar+topic combos total (8 pillars x 4 topics), so the entire cache fills quickly
 
 ### Technical Details
 
-- **New files**: `src/pages/HeadspaceHangout.tsx`, `src/components/PCTSession.tsx`, `src/components/PCTStats.tsx`, `supabase/functions/generate-pct-prompts/index.ts`
-- **Modified files**: `src/App.tsx` (add route), `src/pages/Dashboard.tsx` (add card)
-- **Database**: 3 new tables with RLS policies scoped to authenticated users viewing/editing their own data
-- **AI model**: `google/gemini-3-flash-preview` via Lovable AI for prompt generation
+**New table SQL:**
+```text
+CREATE TABLE public.pct_prompt_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  pillar TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  prompts JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(pillar, topic)
+);
 
-### Future Expansion (not in this phase)
-- Real-time peer pairing (Person A + Person B) with live chat
-- Leaderboards across groups
-- Badge system and rewards store
+-- Allow edge function to read/write via service role
+ALTER TABLE public.pct_prompt_cache ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read" ON public.pct_prompt_cache FOR SELECT USING (true);
+```
 
+**Edge function changes:**
+- Import Supabase client using service role key
+- Query cache before AI call
+- Upsert into cache after AI generation
+
+**Files modified:**
+- `supabase/functions/generate-pct-prompts/index.ts` -- add cache logic
+- `src/components/PCTSession.tsx` -- add optional "refresh prompts" button
+- New migration for `pct_prompt_cache` table
