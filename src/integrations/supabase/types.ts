@@ -627,6 +627,30 @@ export type Database = {
         }
         Relationships: []
       }
+      pct_prompt_cache: {
+        Row: {
+          created_at: string | null
+          id: string
+          pillar: string
+          prompts: Json
+          topic: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          pillar: string
+          prompts: Json
+          topic: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          pillar?: string
+          prompts?: Json
+          topic?: string
+        }
+        Relationships: []
+      }
       pct_responses: {
         Row: {
           created_at: string

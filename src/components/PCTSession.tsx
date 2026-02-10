@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, ArrowRight, Check, Loader2, Lightbulb } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,39 +28,41 @@ export const PCTSession = ({ pillar, topic, onComplete, onBack }: PCTSessionProp
   const [summary, setSummary] = useState<{ summary: string; takeaways: string[] } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
 
-  // Fetch prompts on mount
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+  const fetchPrompts = async (fresh = false) => {
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-        // Create session
+      // Create session
+      if (!sessionId) {
         const { data: session, error: sessionError } = await supabase
           .from("pct_sessions")
           .insert({ user_id: user.id, pillar, topic })
           .select("id")
           .single();
-
         if (sessionError) throw sessionError;
         setSessionId(session.id);
-
-        // Fetch AI prompts
-        const { data, error } = await supabase.functions.invoke("generate-pct-prompts", {
-          body: { pillar, topic, type: "prompts" },
-        });
-
-        if (error) throw error;
-        setPrompts(data.prompts || []);
-        setResponses(new Array(data.prompts?.length || 0).fill(""));
-      } catch (e) {
-        console.error(e);
-        toast.error("Failed to generate prompts. Please try again.");
-      } finally {
-        setLoading(false);
       }
-    };
-    init();
+
+      const { data, error } = await supabase.functions.invoke("generate-pct-prompts", {
+        body: { pillar, topic, type: "prompts", fresh },
+      });
+
+      if (error) throw error;
+      setPrompts(data.prompts || []);
+      setResponses(new Array(data.prompts?.length || 0).fill(""));
+      setCurrentIndex(0);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate prompts. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPrompts();
   }, []);
 
   const handleNext = async () => {
@@ -211,7 +213,12 @@ export const PCTSession = ({ pillar, topic, onComplete, onBack }: PCTSessionProp
         <Button variant="ghost" size="sm" onClick={onBack}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </Button>
-        <span className="text-sm text-muted-foreground">{currentIndex + 1} of {prompts.length}</span>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => fetchPrompts(true)} title="Get fresh prompts">
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground">{currentIndex + 1} of {prompts.length}</span>
+        </div>
       </div>
 
       <Progress value={progress} className="h-2" />
