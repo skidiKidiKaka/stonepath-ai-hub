@@ -9,6 +9,7 @@ import { GroupChat } from "@/components/GroupChat";
 import { GroupEvents } from "@/components/GroupEvents";
 import { UserAvailability } from "@/components/UserAvailability";
 import { GroupAvailability } from "@/components/GroupAvailability";
+import { FriendAvailabilityLookup } from "@/components/FriendAvailabilityLookup";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -172,7 +173,10 @@ const Friendships = () => {
               </Card>
             </div>
 
-            <UserAvailability />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <UserAvailability />
+              <FriendAvailabilityLookup />
+            </div>
 
             <GroupList onGroupSelect={handleGroupSelect} />
           </div>
