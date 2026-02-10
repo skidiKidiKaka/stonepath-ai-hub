@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { GroupList } from "@/components/GroupList";
 import { GroupChat } from "@/components/GroupChat";
-import { GroupEvents } from "@/components/GroupEvents";
+
 import { UserAvailability } from "@/components/UserAvailability";
 import { GroupAvailability } from "@/components/GroupAvailability";
 import { GroupMembers } from "@/components/GroupMembers";
@@ -187,7 +187,7 @@ const Friendships = () => {
               />
               <div className="space-y-6">
                 <GroupMembers groupId={selectedGroupId} />
-                <GroupEvents groupId={selectedGroupId} userRole={userRole} />
+                
               </div>
             </div>
             <When2Meet groupId={selectedGroupId} />
