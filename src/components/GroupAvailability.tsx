@@ -6,13 +6,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface GroupMember {
-  user_id: string;
-  profiles?: {
-    full_name?: string;
-  };
-}
-
 interface AvailabilityData {
   user_id: string;
   day_of_week: number;
@@ -40,10 +33,9 @@ export const GroupAvailability = ({ groupId }: { groupId?: string }) => {
   const fetchGroupAvailability = async () => {
     if (!groupId) return;
 
-    // First get group members
     const { data: members, error: membersError } = await supabase
       .from("group_members")
-      .select("user_id, profiles(full_name)")
+      .select("user_id")
       .eq("group_id", groupId);
 
     if (membersError) {
@@ -55,12 +47,20 @@ export const GroupAvailability = ({ groupId }: { groupId?: string }) => {
       return;
     }
 
-    const memberIds = (members as GroupMember[]).map((m) => m.user_id);
+    const memberIds = (members as any[]).map((m) => m.user_id);
 
-    // Then get their availability
+    // Fetch profiles separately
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", memberIds);
+
+    const profileMap = new Map<string, string>();
+    (profiles || []).forEach((p: any) => profileMap.set(p.user_id, p.full_name || "User"));
+
     const { data: availability, error: availError } = await supabase
       .from("user_availability")
-      .select("*, profiles(full_name)")
+      .select("*")
       .in("user_id", memberIds)
       .eq("week_start_date", format(weekStart, "yyyy-MM-dd"))
       .order("day_of_week", { ascending: true })
@@ -75,10 +75,14 @@ export const GroupAvailability = ({ groupId }: { groupId?: string }) => {
       return;
     }
 
-    setGroupAvailability(availability as AvailabilityData[] || []);
+    setGroupAvailability(
+      (availability || []).map((a: any) => ({
+        ...a,
+        profiles: { full_name: profileMap.get(a.user_id) || "User" },
+      })) as AvailabilityData[]
+    );
   };
 
-  // Group availability by day
   const availabilityByDay = DAYS.map((_, dayIndex) => ({
     day: DAYS[dayIndex],
     slots: groupAvailability.filter((a) => a.day_of_week === dayIndex),
