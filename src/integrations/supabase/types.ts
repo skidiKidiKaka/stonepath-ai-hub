@@ -752,6 +752,142 @@ export type Database = {
         }
         Relationships: []
       }
+      peer_connect_lobby: {
+        Row: {
+          created_at: string | null
+          id: string
+          matched_with: string | null
+          pillar: string
+          session_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          matched_with?: string | null
+          pillar: string
+          session_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          matched_with?: string | null
+          pillar?: string
+          session_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      peer_connect_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peer_connect_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "peer_connect_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peer_connect_responses: {
+        Row: {
+          card_index: number
+          created_at: string | null
+          id: string
+          selected_option: number
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          card_index: number
+          created_at?: string | null
+          id?: string
+          selected_option: number
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          card_index?: number
+          created_at?: string | null
+          id?: string
+          selected_option?: number
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peer_connect_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "peer_connect_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peer_connect_sessions: {
+        Row: {
+          completed_at: string | null
+          connection_score: number | null
+          created_at: string | null
+          id: string
+          pillar: string
+          prompts: Json
+          status: string
+          summary: string | null
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_score?: number | null
+          created_at?: string | null
+          id?: string
+          pillar: string
+          prompts?: Json
+          status?: string
+          summary?: string | null
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          completed_at?: string | null
+          connection_score?: number | null
+          created_at?: string | null
+          id?: string
+          pillar?: string
+          prompts?: Json
+          status?: string
+          summary?: string | null
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -870,6 +1006,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      trusted_peers: {
+        Row: {
+          created_at: string | null
+          id: string
+          peer_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          peer_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          peer_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_availability: {
         Row: {
