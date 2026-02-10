@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { PeerConnectCard } from "@/components/PeerConnectCard";
 import { PeerConnectChat } from "@/components/PeerConnectChat";
 
+const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
+
 interface MCQPrompt {
   question: string;
   options: string[];
@@ -29,6 +31,8 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
   const [partnerName, setPartnerName] = useState("Peer");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  const isDemo = partnerId === DEMO_PEER_UUID;
+
   // Load existing responses and partner name
   useEffect(() => {
     const init = async () => {
@@ -36,13 +40,17 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
       if (!user) return;
       setCurrentUserId(user.id);
 
-      // Get partner name
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", partnerId)
-        .maybeSingle();
-      if (profile?.full_name) setPartnerName(profile.full_name);
+      // Demo mode: use hardcoded name
+      if (isDemo) {
+        setPartnerName("Alex");
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", partnerId)
+          .maybeSingle();
+        if (profile?.full_name) setPartnerName(profile.full_name);
+      }
 
       // Load existing responses
       const { data: responses } = await supabase
@@ -67,8 +75,10 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
     init();
   }, [sessionId, partnerId]);
 
-  // Subscribe to partner's responses
+  // Subscribe to partner's responses (skip for demo)
   useEffect(() => {
+    if (isDemo) return;
+
     const channel = supabase
       .channel(`peer-responses-${sessionId}`)
       .on(
@@ -95,7 +105,7 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [sessionId, currentUserId]);
+  }, [sessionId, currentUserId, isDemo]);
 
   // Generate spark when both answers are revealed
   useEffect(() => {
@@ -147,6 +157,36 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
       updated[currentIndex] = selectedOption;
       return updated;
     });
+
+    // Demo mode: simulate partner answering after a delay
+    if (isDemo) {
+      const delay = 2000 + Math.random() * 2000; // 2-4 seconds
+      setTimeout(async () => {
+        try {
+          const { data } = await supabase.functions.invoke("generate-peer-prompts", {
+            body: {
+              type: "demo-answer",
+              question: prompts[currentIndex].question,
+              options: prompts[currentIndex].options,
+            },
+          });
+          const aiOption = data?.selectedOption ?? Math.floor(Math.random() * 4);
+          setPartnerAnswers((prev) => {
+            const updated = [...prev];
+            updated[currentIndex] = aiOption;
+            return updated;
+          });
+        } catch (e) {
+          console.error("Demo answer failed:", e);
+          // Fallback: random answer
+          setPartnerAnswers((prev) => {
+            const updated = [...prev];
+            updated[currentIndex] = Math.floor(Math.random() * 4);
+            return updated;
+          });
+        }
+      }, delay);
+    }
   };
 
   const handleNext = () => {

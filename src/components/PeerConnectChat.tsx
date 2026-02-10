@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 
+const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
+
 interface PeerConnectChatProps {
   sessionId: string;
   partnerId: string;
@@ -27,7 +29,10 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [addedAsPeer, setAddedAsPeer] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const isDemo = partnerId === DEMO_PEER_UUID;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -51,8 +56,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user?.id || null);
 
-      // Check if already trusted peer
-      if (user) {
+      if (!isDemo && user) {
         const { data: existing } = await supabase
           .from("trusted_peers" as any)
           .select("id")
@@ -61,6 +65,9 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
           .maybeSingle();
         if (existing) setAddedAsPeer(true);
       }
+
+      // Hide "Add Peer" for demo
+      if (isDemo) setAddedAsPeer(true);
     };
 
     init();
@@ -89,10 +96,13 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
     e.preventDefault();
     if (!newMessage.trim() || !currentUserId) return;
 
+    const messageText = newMessage;
+    setNewMessage("");
+
     const { error } = await supabase.from("peer_connect_messages" as any).insert({
       session_id: sessionId,
       user_id: currentUserId,
-      content: newMessage,
+      content: messageText,
     });
 
     if (error) {
@@ -100,7 +110,48 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
       return;
     }
 
-    setNewMessage("");
+    // Demo mode: get AI reply
+    if (isDemo) {
+      const delay = 1000 + Math.random() * 2000; // 1-3 seconds
+      setIsTyping(true);
+
+      setTimeout(async () => {
+        try {
+          // Build conversation context from current messages
+          const currentMessages = await supabase
+            .from("peer_connect_messages" as any)
+            .select("*")
+            .eq("session_id", sessionId)
+            .order("created_at", { ascending: true });
+
+          const chatHistory = ((currentMessages.data as any[]) || []).map((m: any) => ({
+            content: m.content,
+            isMe: m.user_id === currentUserId,
+          }));
+
+          const { data } = await supabase.functions.invoke("generate-peer-prompts", {
+            body: {
+              type: "demo-chat",
+              messages: chatHistory,
+              pillar: "general",
+            },
+          });
+
+          const reply = data?.reply || "That's really cool! Tell me more 😊";
+
+          // Insert as demo peer
+          await supabase.from("peer_connect_messages" as any).insert({
+            session_id: sessionId,
+            user_id: DEMO_PEER_UUID,
+            content: reply,
+          });
+        } catch (e) {
+          console.error("Demo chat failed:", e);
+        } finally {
+          setIsTyping(false);
+        }
+      }, delay);
+    }
   };
 
   const handleAddTrustedPeer = async () => {
@@ -121,13 +172,11 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
   };
 
   const handleEndSession = async () => {
-    // Update session status
     await supabase
       .from("peer_connect_sessions" as any)
       .update({ status: "completed", completed_at: new Date().toISOString() })
       .eq("id", sessionId);
 
-    // Award points
     if (currentUserId) {
       const { data: streak } = await supabase
         .from("pct_streaks")
@@ -225,6 +274,18 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
             </div>
           </div>
         ))}
+
+        {isTyping && (
+          <div className="flex gap-2">
+            <Avatar className="h-7 w-7">
+              <AvatarFallback className="text-xs">{partnerName.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="rounded-lg p-3 text-sm bg-muted">
+              <span className="animate-pulse">typing...</span>
+            </div>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </CardContent>
 

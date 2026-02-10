@@ -30,7 +30,7 @@ export const PeerConnectLobby = ({ pillar, pillarColor, onMatched, onCancel }: P
     const joinLobby = async () => {
       try {
         const { data, error } = await supabase.functions.invoke("peer-connect-match", {
-          body: { pillar },
+          body: { pillar, demo: true },
         });
 
         if (error) throw error;
