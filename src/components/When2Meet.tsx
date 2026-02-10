@@ -153,7 +153,7 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
   const calendarDays = Array.from({ length: 28 }, (_, i) => addDays(calendarWeekStart, i));
 
   return (
-    <Card>
+    <Card className="overflow-visible">
       <CardHeader>
         <div className="flex items-center justify-between">
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
@@ -274,7 +274,7 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
           Create scheduling polls to find when everyone is free
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="overflow-visible">
         {!selectedPoll ? (
           <div className="space-y-2">
             {polls.length === 0 ? (
@@ -548,8 +548,8 @@ const AvailabilityGrid = ({ poll, currentUserId }: AvailabilityGridProps) => {
           </div>
         </TabsContent>
 
-        <TabsContent value="group">
-          <div className="overflow-x-auto overflow-y-visible select-none pt-16">
+        <TabsContent value="group" className="overflow-visible">
+          <div className="select-none overflow-visible">
             <div
               className="grid"
               style={{ gridTemplateColumns: `56px repeat(${poll.poll_dates.length}, minmax(64px, 1fr))` }}
@@ -593,7 +593,7 @@ const AvailabilityGrid = ({ poll, currentUserId }: AvailabilityGridProps) => {
                           </span>
                         )}
                         {users.length > 0 && (
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 hidden group-hover:block z-[100] bg-popover border rounded-md p-2 shadow-md text-xs min-w-[120px]">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-[100] bg-popover border rounded-md p-2 shadow-md text-xs min-w-[120px]">
                             <p className="font-medium mb-1">{formatHour(hour)}</p>
                             {users.map((u, i) => (
                               <p key={i} className="text-muted-foreground">{u}</p>
