@@ -160,7 +160,7 @@ export const PeerConnectLobby = ({ pillar, pillarColor, onMatched, onCancel }: P
       {status === "waiting" && (
         <Card className="max-w-sm">
           <CardContent className="p-4 text-center text-sm text-muted-foreground">
-            <p>💡 Tip: You'll both answer the same 5 questions, then reveal each other's answers. It's a great way to start a real conversation!</p>
+            <p>💡 Tip: You'll both answer the same 3 questions, then reveal each other's answers. It's a great way to start a real conversation!</p>
           </CardContent>
         </Card>
       )}

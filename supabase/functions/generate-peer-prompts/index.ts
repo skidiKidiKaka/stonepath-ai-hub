@@ -160,7 +160,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a creative icebreaker designer for high school students. Generate exactly 5 personality/preference MCQ questions related to "${pillar}". These are NOT knowledge questions — they are personal preference questions with no right or wrong answer. Each question should have exactly 4 options.
+            content: `You are a creative icebreaker designer for high school students. Generate exactly 3 personality/preference MCQ questions related to "${pillar}". These are NOT knowledge questions — they are personal preference questions with no right or wrong answer. Each question should have exactly 4 options.
 
 The questions should:
 - Be fun, relatable, and age-appropriate (14-18)
@@ -172,7 +172,7 @@ Return valid JSON only: {"prompts": [{"question": "...", "options": ["...", "...
           },
           {
             role: "user",
-            content: `Generate 5 icebreaker MCQ questions for the "${pillar}" pillar.`,
+            content: `Generate 3 icebreaker MCQ questions for the "${pillar}" pillar.`,
           },
         ],
       }),

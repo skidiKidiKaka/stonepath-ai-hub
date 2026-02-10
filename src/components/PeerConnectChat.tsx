@@ -10,11 +10,18 @@ import { formatDistanceToNow } from "date-fns";
 
 const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
 
+interface AnswerSummaryItem {
+  question: string;
+  myAnswer: string;
+  partnerAnswer: string;
+}
+
 interface PeerConnectChatProps {
   sessionId: string;
   partnerId: string;
   partnerName: string;
   onEnd: () => void;
+  answerSummary?: AnswerSummaryItem[];
 }
 
 interface ChatMessage {
@@ -24,7 +31,7 @@ interface ChatMessage {
   created_at: string;
 }
 
-export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: PeerConnectChatProps) => {
+export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answerSummary }: PeerConnectChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -240,6 +247,21 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd }: Pe
       </CardHeader>
 
       <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
+        {answerSummary && answerSummary.length > 0 && (
+          <div className="bg-muted/50 rounded-lg p-3 space-y-2 mb-2">
+            <p className="text-xs font-semibold text-muted-foreground text-center">🎯 Your Icebreaker Answers</p>
+            {answerSummary.map((item, i) => (
+              <div key={i} className="text-xs space-y-0.5">
+                <p className="font-medium text-foreground">{item.question}</p>
+                <div className="flex gap-2">
+                  <span className="text-primary">You: {item.myAnswer}</span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-secondary-foreground">{partnerName}: {item.partnerAnswer}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="text-center text-sm text-muted-foreground py-2">
           💬 Chat unlocked! Continue the conversation naturally.
         </div>

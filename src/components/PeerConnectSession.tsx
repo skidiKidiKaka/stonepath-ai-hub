@@ -200,6 +200,13 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
   const isCurrentRevealed = myAnswers[currentIndex] !== null && partnerAnswers[currentIndex] !== null;
   const progress = ((currentIndex + 1) / prompts.length) * 100;
 
+  // Build answer summary for chat
+  const answerSummary = prompts.map((p, i) => ({
+    question: p.question,
+    myAnswer: myAnswers[i] !== null ? p.options[myAnswers[i]!] : "—",
+    partnerAnswer: partnerAnswers[i] !== null ? p.options[partnerAnswers[i]!] : "—",
+  }));
+
   if (phase === "chat") {
     return (
       <PeerConnectChat
@@ -207,6 +214,7 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
         partnerId={partnerId}
         partnerName={partnerName}
         onEnd={onComplete}
+        answerSummary={answerSummary}
       />
     );
   }
