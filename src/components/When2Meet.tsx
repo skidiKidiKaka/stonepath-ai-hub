@@ -143,10 +143,6 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-primary" />
-            <CardTitle>When2Meet</CardTitle>
-          </div>
           <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button size="sm" className="gap-1">
