@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -24,11 +26,102 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await userClient.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { pillar } = await req.json();
+    const { pillar, demo } = await req.json();
     if (!pillar) throw new Error("Pillar is required");
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // ======= DEMO MODE =======
+    if (demo) {
+      console.log("Demo mode: creating session with AI peer");
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      let prompts = [];
+
+      // Try cache first
+      const { data: cached } = await supabase
+        .from("pct_prompt_cache")
+        .select("prompts")
+        .eq("pillar", `peer_${pillar}`)
+        .eq("topic", "icebreakers")
+        .maybeSingle();
+
+      if (cached) {
+        prompts = cached.prompts;
+      } else if (LOVABLE_API_KEY) {
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              {
+                role: "system",
+                content: `Generate exactly 5 personality/preference MCQ questions related to "${pillar}" for high school students. No right/wrong answers. Each has 4 options. Return JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
+              },
+              { role: "user", content: `Generate 5 icebreaker MCQs for "${pillar}".` },
+            ],
+          }),
+        });
+
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          const content = aiData.choices?.[0]?.message?.content || "";
+          try {
+            const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
+            const parsed = JSON.parse(jsonMatch[1].trim());
+            prompts = parsed.prompts || [];
+            await supabase.from("pct_prompt_cache").upsert(
+              { pillar: `peer_${pillar}`, topic: "icebreakers", prompts },
+              { onConflict: "pillar,topic" }
+            );
+          } catch {
+            console.error("Failed to parse AI response for demo");
+          }
+        }
+      }
+
+      // Fallback prompts
+      if (!prompts || prompts.length === 0) {
+        prompts = [
+          { question: "When you're stressed, you usually...", options: ["Listen to music", "Talk to someone", "Go for a walk", "Write it down"] },
+          { question: "Your ideal weekend looks like...", options: ["Hanging with friends", "Solo adventure", "Staying in & relaxing", "Trying something new"] },
+          { question: "The best way to cheer someone up is...", options: ["Make them laugh", "Listen to them", "Do something fun together", "Give them space"] },
+          { question: "You learn best by...", options: ["Watching tutorials", "Hands-on practice", "Discussing with others", "Reading about it"] },
+          { question: "Your go-to comfort activity is...", options: ["Watching a show", "Cooking/eating", "Exercising", "Creative projects"] },
+        ];
+      }
+
+      // Create session with demo peer
+      const { data: session, error: sessionError } = await supabase
+        .from("peer_connect_sessions")
+        .insert({
+          user_a: user.id,
+          user_b: DEMO_PEER_UUID,
+          pillar,
+          prompts,
+          status: "active",
+        })
+        .select("id")
+        .single();
+
+      if (sessionError) throw sessionError;
+
+      return new Response(
+        JSON.stringify({
+          status: "matched",
+          sessionId: session.id,
+          prompts,
+          partnerId: DEMO_PEER_UUID,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ======= NORMAL MODE =======
     // Look for a waiting user on the same pillar (not self)
     const { data: waiting } = await supabase
       .from("peer_connect_lobby")
@@ -41,8 +134,6 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!waiting) {
-      // No match found — add self to lobby
-      // First clean up any existing waiting entries for this user
       await supabase
         .from("peer_connect_lobby")
         .delete()
@@ -66,7 +157,6 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     let prompts = [];
 
-    // Try cache first
     const { data: cached } = await supabase
       .from("pct_prompt_cache")
       .select("prompts")
@@ -77,7 +167,6 @@ serve(async (req) => {
     if (cached) {
       prompts = cached.prompts;
     } else if (LOVABLE_API_KEY) {
-      // Generate via AI
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -103,7 +192,6 @@ serve(async (req) => {
           const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
           const parsed = JSON.parse(jsonMatch[1].trim());
           prompts = parsed.prompts || [];
-          // Cache it
           await supabase.from("pct_prompt_cache").upsert(
             { pillar: `peer_${pillar}`, topic: "icebreakers", prompts },
             { onConflict: "pillar,topic" }
@@ -114,7 +202,6 @@ serve(async (req) => {
       }
     }
 
-    // Fallback prompts if AI failed
     if (!prompts || prompts.length === 0) {
       prompts = [
         { question: "When you're stressed, you usually...", options: ["Listen to music", "Talk to someone", "Go for a walk", "Write it down"] },
@@ -125,7 +212,6 @@ serve(async (req) => {
       ];
     }
 
-    // Create session
     const { data: session, error: sessionError } = await supabase
       .from("peer_connect_sessions")
       .insert({
@@ -140,13 +226,11 @@ serve(async (req) => {
 
     if (sessionError) throw sessionError;
 
-    // Update both lobby entries
     await supabase
       .from("peer_connect_lobby")
       .update({ status: "matched", matched_with: user.id, session_id: session.id })
       .eq("id", waiting.id);
 
-    // Clean up any waiting entries for current user and create matched entry
     await supabase
       .from("peer_connect_lobby")
       .delete()

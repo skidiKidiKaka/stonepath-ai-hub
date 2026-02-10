@@ -10,7 +10,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { pillar, type, optionA, optionB, question } = await req.json();
+    const body = await req.json();
+    const { type } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
@@ -19,8 +20,89 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Generate "Connection Spark" comment
+    // ======= DEMO ANSWER =======
+    if (type === "demo-answer") {
+      const { question, options } = body;
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "system",
+              content: `You are simulating a friendly high school student answering an icebreaker question. Pick the option that feels most natural and realistic for a teen. Return ONLY a JSON object: {"selectedOption": <index>} where index is 0-${options.length - 1}. No other text.`,
+            },
+            {
+              role: "user",
+              content: `Question: "${question}"\nOptions: ${options.map((o: string, i: number) => `${i}: "${o}"`).join(", ")}`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error("AI gateway error");
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content?.trim() || "";
+      try {
+        const parsed = JSON.parse(content.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim());
+        return new Response(JSON.stringify({ selectedOption: parsed.selectedOption ?? 0 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch {
+        // Fallback: pick a random option
+        return new Response(JSON.stringify({ selectedOption: Math.floor(Math.random() * options.length) }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // ======= DEMO CHAT =======
+    if (type === "demo-chat") {
+      const { messages, pillar } = body;
+      const recentMessages = (messages || []).slice(-10);
+      const conversationContext = recentMessages
+        .map((m: any) => `${m.isMe ? "User" : "Alex"}: ${m.content}`)
+        .join("\n");
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: `You are "Alex", a friendly, empathetic high school student chatting with a peer about ${pillar || "life"}. You just finished answering icebreaker questions together. Be natural, warm, use casual teen-friendly language (but not cringey). Keep responses to 1-3 sentences. Ask follow-up questions sometimes. Never reveal you're AI. Return just the message text, no quotes or formatting.`,
+            },
+            {
+              role: "user",
+              content: conversationContext
+                ? `Here's the conversation so far:\n${conversationContext}\n\nRespond as Alex:`
+                : "The chat just started. Say something friendly to kick off the conversation as Alex:",
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error("AI gateway error");
+      const data = await response.json();
+      const reply = data.choices?.[0]?.message?.content?.trim() || "That's really interesting! Tell me more 😊";
+
+      return new Response(JSON.stringify({ reply }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ======= CONNECTION SPARK =======
     if (type === "spark") {
+      const { question, optionA, optionB } = body;
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -51,7 +133,8 @@ serve(async (req) => {
       });
     }
 
-    // Generate MCQ prompts - check cache first
+    // ======= GENERATE MCQ PROMPTS =======
+    const { pillar } = body;
     const cacheKey = `peer_${pillar}`;
     const { data: cached } = await supabase
       .from("pct_prompt_cache")
@@ -61,13 +144,10 @@ serve(async (req) => {
       .maybeSingle();
 
     if (cached) {
-      console.log(`Cache hit for peer prompts: ${pillar}`);
       return new Response(JSON.stringify({ prompts: cached.prompts }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    console.log(`Generating peer prompts for ${pillar}...`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -115,7 +195,6 @@ Return valid JSON only: {"prompts": [{"question": "...", "options": ["...", "...
       parsed = JSON.parse(content);
     }
 
-    // Cache for future use
     if (parsed.prompts) {
       await supabase.from("pct_prompt_cache").upsert(
         { pillar: cacheKey, topic: "icebreakers", prompts: parsed.prompts },
