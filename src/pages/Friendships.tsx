@@ -10,6 +10,7 @@ import { GroupEvents } from "@/components/GroupEvents";
 import { UserAvailability } from "@/components/UserAvailability";
 import { GroupAvailability } from "@/components/GroupAvailability";
 import { GroupMembers } from "@/components/GroupMembers";
+import { When2Meet } from "@/components/When2Meet";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -189,6 +190,7 @@ const Friendships = () => {
                 <GroupEvents groupId={selectedGroupId} userRole={userRole} />
               </div>
             </div>
+            <When2Meet groupId={selectedGroupId} />
             <GroupAvailability groupId={selectedGroupId} />
           </div>
         )}
