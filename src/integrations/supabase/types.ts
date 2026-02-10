@@ -627,6 +627,107 @@ export type Database = {
         }
         Relationships: []
       }
+      pct_responses: {
+        Row: {
+          created_at: string
+          id: string
+          prompt_order: number
+          prompt_text: string
+          response_text: string
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prompt_order: number
+          prompt_text: string
+          response_text: string
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prompt_order?: number
+          prompt_text?: string
+          response_text?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pct_responses_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "pct_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pct_sessions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          pillar: string
+          started_at: string
+          summary: string | null
+          topic: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          pillar: string
+          started_at?: string
+          summary?: string | null
+          topic: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          pillar?: string
+          started_at?: string
+          summary?: string | null
+          topic?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      pct_streaks: {
+        Row: {
+          current_streak: number
+          id: string
+          last_session_date: string | null
+          longest_streak: number
+          total_points: number
+          total_sessions: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          current_streak?: number
+          id?: string
+          last_session_date?: string | null
+          longest_streak?: number
+          total_points?: number
+          total_sessions?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          current_streak?: number
+          id?: string
+          last_session_date?: string | null
+          longest_streak?: number
+          total_points?: number
+          total_sessions?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
