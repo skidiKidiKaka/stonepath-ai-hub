@@ -60,9 +60,9 @@ serve(async (req) => {
             messages: [
               {
                 role: "system",
-                content: `Generate exactly 5 personality/preference MCQ questions related to "${pillar}" for high school students. No right/wrong answers. Each has 4 options. Return JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
+                content: `Generate exactly 3 personality/preference MCQ questions related to "${pillar}" for high school students. No right/wrong answers. Each has 4 options. Return JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
               },
-              { role: "user", content: `Generate 5 icebreaker MCQs for "${pillar}".` },
+              { role: "user", content: `Generate 3 icebreaker MCQs for "${pillar}".` },
             ],
           }),
         });
@@ -90,8 +90,6 @@ serve(async (req) => {
           { question: "When you're stressed, you usually...", options: ["Listen to music", "Talk to someone", "Go for a walk", "Write it down"] },
           { question: "Your ideal weekend looks like...", options: ["Hanging with friends", "Solo adventure", "Staying in & relaxing", "Trying something new"] },
           { question: "The best way to cheer someone up is...", options: ["Make them laugh", "Listen to them", "Do something fun together", "Give them space"] },
-          { question: "You learn best by...", options: ["Watching tutorials", "Hands-on practice", "Discussing with others", "Reading about it"] },
-          { question: "Your go-to comfort activity is...", options: ["Watching a show", "Cooking/eating", "Exercising", "Creative projects"] },
         ];
       }
 
@@ -178,9 +176,9 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `Generate exactly 5 personality/preference MCQ questions related to "${pillar}" for high school students. No right/wrong answers. Each has 4 options. Return JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
-            },
-            { role: "user", content: `Generate 5 icebreaker MCQs for "${pillar}".` },
+                content: `Generate exactly 3 personality/preference MCQ questions related to "${pillar}" for high school students. No right/wrong answers. Each has 4 options. Return JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
+              },
+              { role: "user", content: `Generate 3 icebreaker MCQs for "${pillar}".` },
           ],
         }),
       });
@@ -207,8 +205,6 @@ serve(async (req) => {
         { question: "When you're stressed, you usually...", options: ["Listen to music", "Talk to someone", "Go for a walk", "Write it down"] },
         { question: "Your ideal weekend looks like...", options: ["Hanging with friends", "Solo adventure", "Staying in & relaxing", "Trying something new"] },
         { question: "The best way to cheer someone up is...", options: ["Make them laugh", "Listen to them", "Do something fun together", "Give them space"] },
-        { question: "You learn best by...", options: ["Watching tutorials", "Hands-on practice", "Discussing with others", "Reading about it"] },
-        { question: "Your go-to comfort activity is...", options: ["Watching a show", "Cooking/eating", "Exercising", "Creative projects"] },
       ];
     }
 
