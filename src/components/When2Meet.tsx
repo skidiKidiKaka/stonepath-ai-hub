@@ -24,6 +24,7 @@ interface Poll {
   latest_hour: number;
   created_by: string;
   created_at: string;
+  creator_name?: string;
 }
 
 interface SlotData {
@@ -72,7 +73,19 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      setPolls(data as any as Poll[]);
+      const polls = data as any as Poll[];
+      // Fetch creator names
+      const creatorIds = [...new Set(polls.map((p) => p.created_by))];
+      if (creatorIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+        const profileMap = new Map<string, string>();
+        (profiles || []).forEach((p: any) => profileMap.set(p.user_id, p.full_name || "Unknown"));
+        polls.forEach((p) => { p.creator_name = profileMap.get(p.created_by) || "Unknown"; });
+      }
+      setPolls(polls);
     }
   };
 
@@ -278,7 +291,7 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
                   <div>
                     <p className="font-medium text-sm">{poll.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {poll.poll_dates.length} dates · {formatHour(poll.earliest_hour)} – {formatHour(poll.latest_hour)}
+                      {poll.poll_dates.length} dates · {formatHour(poll.earliest_hour)} – {formatHour(poll.latest_hour)} · by {poll.creator_name || "Unknown"}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
