@@ -49,7 +49,6 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
   const { toast } = useToast();
 
   // Create form state
-  const [title, setTitle] = useState("");
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [earliestHour, setEarliestHour] = useState(9);
   const [latestHour, setLatestHour] = useState(17);
@@ -91,9 +90,11 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
 
     const sortedDates = [...selectedDates].sort();
 
+    const autoTitle = `${format(new Date(sortedDates[0] + "T00:00"), "MMM d")} – ${format(new Date(sortedDates[sortedDates.length - 1] + "T00:00"), "MMM d")}`;
+
     const { error } = await supabase.from("availability_polls" as any).insert({
       group_id: groupId,
-      title,
+      title: autoTitle,
       poll_dates: sortedDates,
       earliest_hour: earliestHour,
       latest_hour: latestHour,
@@ -106,7 +107,6 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
     }
 
     toast({ title: "Poll created!" });
-    setTitle("");
     setSelectedDates(new Set());
     setEarliestHour(9);
     setLatestHour(17);
@@ -154,15 +154,6 @@ export const When2Meet = ({ groupId }: When2MeetProps) => {
                 <DialogTitle>Create Availability Poll</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreatePoll} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Title</Label>
-                  <Input
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Study session this week"
-                    required
-                  />
-                </div>
 
                 <div className="space-y-2">
                   <Label>Click dates to select ({selectedDates.size} selected)</Label>
@@ -475,7 +466,7 @@ const AvailabilityGrid = ({ poll, currentUserId }: AvailabilityGridProps) => {
 
   return (
     <div>
-      <h3 className="font-semibold mb-1">{poll.title}</h3>
+      <p className="text-sm font-medium mb-1">{poll.title}</p>
       <p className="text-xs text-muted-foreground mb-4">
         {memberCount} {memberCount === 1 ? "person" : "people"} responded · Click & drag to mark your availability
       </p>
@@ -615,6 +606,35 @@ const AvailabilityGrid = ({ poll, currentUserId }: AvailabilityGridProps) => {
               ))}
             </div>
             <span>More</span>
+          </div>
+
+          {/* Respondents summary */}
+          <div className="mt-4 border rounded-lg p-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <p className="text-sm font-medium">
+                {memberCount} {memberCount === 1 ? "person" : "people"} responded
+              </p>
+            </div>
+            {(() => {
+              const uniqueNames = [...new Map(
+                allSlots.map((s) => [
+                  s.user_id,
+                  s.user_id === currentUserId ? "You" : s.full_name || "User",
+                ])
+              ).entries()];
+              return uniqueNames.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {uniqueNames.map(([uid, name]) => (
+                    <Badge key={uid} variant="secondary" className="text-xs">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No responses yet</p>
+              );
+            })()}
           </div>
         </TabsContent>
       </Tabs>
