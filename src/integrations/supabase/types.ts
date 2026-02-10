@@ -253,6 +253,41 @@ export type Database = {
         }
         Relationships: []
       }
+      event_availability: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          slot_date: string
+          slot_hour: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          slot_date: string
+          slot_hour: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          slot_date?: string
+          slot_hour?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_availability_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "group_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_rsvps: {
         Row: {
           created_at: string
