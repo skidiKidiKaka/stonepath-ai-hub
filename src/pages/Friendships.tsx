@@ -8,7 +8,7 @@ import { GroupList } from "@/components/GroupList";
 import { GroupChat } from "@/components/GroupChat";
 
 import { UserAvailability } from "@/components/UserAvailability";
-import { GroupAvailability } from "@/components/GroupAvailability";
+
 import { GroupMembers } from "@/components/GroupMembers";
 import { When2Meet } from "@/components/When2Meet";
 import { supabase } from "@/integrations/supabase/client";
@@ -191,7 +191,6 @@ const Friendships = () => {
               </div>
             </div>
             <When2Meet groupId={selectedGroupId} />
-            <GroupAvailability groupId={selectedGroupId} />
           </div>
         )}
       </main>
