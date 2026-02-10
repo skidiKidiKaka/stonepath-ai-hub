@@ -57,21 +57,30 @@ export const FriendAvailabilityLookup = () => {
 
     const { data: members } = await supabase
       .from("group_members")
-      .select("user_id, profiles(full_name)")
+      .select("user_id")
       .in("group_id", groupIds)
       .neq("user_id", user.id);
 
     if (!members) return;
 
     // Deduplicate by user_id
+    const uniqueUserIds = [...new Set((members as any[]).map((m) => m.user_id))];
+
+    // Fetch profiles separately
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", uniqueUserIds);
+
+    const profileMap = new Map<string, string>();
+    (profiles || []).forEach((p: any) => profileMap.set(p.user_id, p.full_name || "Unknown User"));
+
     const uniqueMap = new Map<string, FriendOption>();
-    (members as any[]).forEach((m) => {
-      if (!uniqueMap.has(m.user_id)) {
-        uniqueMap.set(m.user_id, {
-          user_id: m.user_id,
-          full_name: m.profiles?.full_name || "Unknown User",
-        });
-      }
+    uniqueUserIds.forEach((uid) => {
+      uniqueMap.set(uid, {
+        user_id: uid,
+        full_name: profileMap.get(uid) || "Unknown User",
+      });
     });
 
     setFriends(Array.from(uniqueMap.values()));

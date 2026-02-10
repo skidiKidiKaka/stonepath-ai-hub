@@ -52,7 +52,7 @@ export const EventAvailabilityGrid = ({ eventId, eventDate }: EventAvailabilityG
     // Fetch all availability for this event
     const { data, error } = await supabase
       .from("event_availability" as any)
-      .select("slot_date, slot_hour, user_id, profiles(full_name)")
+      .select("slot_date, slot_hour, user_id")
       .eq("event_id", eventId)
       .in("slot_date", dateStrings);
 
@@ -62,12 +62,24 @@ export const EventAvailabilityGrid = ({ eventId, eventDate }: EventAvailabilityG
     }
 
     const slots = (data || []) as any[];
+
+    // Fetch profiles separately
+    const uniqueUserIds = [...new Set(slots.map((s) => s.user_id))];
+    const profileMap = new Map<string, string>();
+    if (uniqueUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", uniqueUserIds);
+      (profiles || []).forEach((p: any) => profileMap.set(p.user_id, p.full_name || "User"));
+    }
+
     setAllSlots(
       slots.map((s) => ({
         slot_date: s.slot_date,
         slot_hour: s.slot_hour,
         user_id: s.user_id,
-        full_name: s.profiles?.full_name || "User",
+        full_name: profileMap.get(s.user_id) || "User",
       }))
     );
 
