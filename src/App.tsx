@@ -16,6 +16,7 @@ import Career from "./pages/Career";
 import Finance from "./pages/Finance";
 import Relationships from "./pages/Relationships";
 import Bullying from "./pages/Bullying";
+import HeadspaceHangout from "./pages/HeadspaceHangout";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/tasks" element={<TaskPlanner />} />
+          <Route path="/headspace-hangout" element={<HeadspaceHangout />} />
           <Route path="/mental-health" element={<MentalHealth />} />
           <Route path="/academics" element={<Academics />} />
           <Route path="/friendships" element={<Friendships />} />

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo } from "lucide-react";
+import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { AiChatDialog } from "@/components/AiChatDialog";
 import { NewsCarousel } from "@/components/NewsCarousel";
+import { PCTStats } from "@/components/PCTStats";
 
 const pillars = [
   { id: "career", name: "Career", icon: Briefcase, color: "from-orange-500 to-orange-600" },
@@ -129,6 +130,25 @@ const Dashboard = () => {
             >
               {affirmations[currentAffirmation]}
             </p>
+          </div>
+        </Card>
+
+        {/* Headspace Hangout Card */}
+        <Card
+          className="mb-8 p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-primary/5 to-secondary/5"
+          onClick={() => navigate("/headspace-hangout")}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold">Headspace Hangout</h3>
+                <p className="text-sm text-muted-foreground">Guided reflection & self-discovery</p>
+              </div>
+            </div>
+            <PCTStats compact />
           </div>
         </Card>
 
