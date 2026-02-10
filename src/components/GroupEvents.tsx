@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Calendar, MapPin, Users, Check, X } from "lucide-react";
+import { Plus, Calendar, MapPin, Users, Check, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { EventAvailabilityGrid } from "@/components/EventAvailabilityGrid";
 
 interface Event {
   id: string;
@@ -397,6 +398,8 @@ export const GroupEvents = ({ groupId, userRole }: GroupEventsProps) => {
                     </Button>
                   )}
                 </div>
+
+                <EventAvailabilityGrid eventId={event.id} eventDate={event.event_date} />
               </CardContent>
             </Card>
           ))
