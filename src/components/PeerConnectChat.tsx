@@ -256,7 +256,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
                 <div className="flex gap-2">
                   <span className="text-primary">You: {item.myAnswer}</span>
                   <span className="text-muted-foreground">•</span>
-                  <span className="text-secondary-foreground">{partnerName}: {item.partnerAnswer}</span>
+                  <span className="text-foreground font-medium">{partnerName}: {item.partnerAnswer}</span>
                 </div>
               </div>
             ))}
