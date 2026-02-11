@@ -899,7 +899,7 @@ const Career = () => {
                     <Button
                       onClick={handleStartPractice}
                       disabled={!targetRole.trim() || isSendingInterview}
-                      className="flex-1"
+                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
                     >
                       {isSendingInterview ? (
                         <>

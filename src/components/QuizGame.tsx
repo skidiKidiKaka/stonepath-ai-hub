@@ -232,7 +232,7 @@ export const QuizGame = () => {
           <Button 
             onClick={generateQuiz} 
             disabled={!category || isLoading}
-            className="w-full"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
           >
             {isLoading ? (
               <>
