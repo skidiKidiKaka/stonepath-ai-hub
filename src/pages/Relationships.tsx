@@ -263,6 +263,7 @@ const Relationships = () => {
                     onClick={handleSubmitQuestion}
                     disabled={isSubmitting || newQuestion.trim().length < 10}
                     size="sm"
+                    className="bg-pink-500 hover:bg-pink-600 text-white"
                   >
                     <Send className="w-4 h-4 mr-2" />
                     Submit Question
