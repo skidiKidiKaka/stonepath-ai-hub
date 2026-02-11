@@ -232,9 +232,9 @@ export const AiNoteGenerator = () => {
   };
 
   return (
-    <Card className="p-6 bg-gradient-to-br from-card to-card/80 border-orange-500/20">
+    <Card className="p-6 bg-gradient-to-br from-card to-card/80 border-blue-500/20">
       <div className="flex items-center gap-2 mb-4">
-        <Brain className="h-5 w-5 text-orange-500" />
+        <Brain className="h-5 w-5 text-blue-500" />
         <h2 className="text-xl font-semibold">AI Note Generator</h2>
       </div>
 
@@ -277,7 +277,7 @@ export const AiNoteGenerator = () => {
           <Button
             onClick={generateAllNotes}
             disabled={isGenerating || !content.trim()}
-            className="w-full bg-gradient-to-r from-orange-500 to-orange-600"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600"
           >
             {isGenerating ? (
               <>
@@ -309,22 +309,22 @@ export const AiNoteGenerator = () => {
                   // Detect headers (lines starting with # or all caps)
                   if (line.includes('##')) {
                     const headerText = cleanedLine.replace(/#+\s*/g, '');
-                    return <h2 key={index} className="text-2xl font-bold text-orange-500 mt-6 mb-3">{headerText}</h2>;
+                    return <h2 key={index} className="text-2xl font-bold text-blue-500 mt-6 mb-3">{headerText}</h2>;
                   } else if (line.includes('#')) {
                     const headerText = cleanedLine.replace(/#+\s*/g, '');
-                    return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{headerText}</h3>;
+                    return <h3 key={index} className="text-xl font-semibold text-blue-400 mt-4 mb-2">{headerText}</h3>;
                   }
                   
                   // Check if it's all caps (likely a header)
                   if (cleanedLine === cleanedLine.toUpperCase() && cleanedLine.length > 3 && cleanedLine.length < 100) {
-                    return <h3 key={index} className="text-xl font-semibold text-orange-400 mt-4 mb-2">{cleanedLine}</h3>;
+                    return <h3 key={index} className="text-xl font-semibold text-blue-400 mt-4 mb-2">{cleanedLine}</h3>;
                   }
                   
                   // Main bullet points (original line starts with -)
                   if (line.trim().startsWith('-')) {
                     return (
                       <div key={index} className="flex gap-3 items-start">
-                        <span className="text-orange-500 text-xl mt-0.5 flex-shrink-0">•</span>
+                        <span className="text-blue-500 text-xl mt-0.5 flex-shrink-0">•</span>
                         <p className="text-base font-medium leading-relaxed flex-1">{cleanedLine}</p>
                       </div>
                     );
@@ -334,7 +334,7 @@ export const AiNoteGenerator = () => {
                   if (line.startsWith('  ') || line.startsWith('\t')) {
                     return (
                       <div key={index} className="flex gap-3 items-start ml-8">
-                        <span className="text-orange-400 text-sm mt-1 flex-shrink-0">◦</span>
+                        <span className="text-blue-400 text-sm mt-1 flex-shrink-0">◦</span>
                         <p className="text-sm leading-relaxed text-muted-foreground flex-1">{cleanedLine}</p>
                       </div>
                     );
@@ -360,7 +360,7 @@ export const AiNoteGenerator = () => {
               flashcards.map((card, index) => (
                 <Card key={index} className="p-4 bg-background/50">
                   <div className="space-y-2">
-                    <div className="font-semibold text-orange-500">Q: {card.question}</div>
+                    <div className="font-semibold text-blue-500">Q: {card.question}</div>
                     <div className="text-sm">A: {card.answer}</div>
                   </div>
                 </Card>
@@ -376,14 +376,14 @@ export const AiNoteGenerator = () => {
             {mindmap ? (
               <div className="space-y-4">
                 <div className="text-center">
-                  <div className="inline-block px-6 py-3 bg-orange-500 text-white rounded-full font-semibold text-lg">
+                  <div className="inline-block px-6 py-3 bg-blue-500 text-white rounded-full font-semibold text-lg">
                     {mindmap.central}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   {mindmap.branches.map((branch, index) => (
-                    <Card key={index} className="p-4 bg-background border-l-4 border-orange-500">
-                      <h3 className="font-semibold text-lg mb-2 text-orange-500">{branch.title}</h3>
+                    <Card key={index} className="p-4 bg-background border-l-4 border-blue-500">
+                      <h3 className="font-semibold text-lg mb-2 text-blue-500">{branch.title}</h3>
                       <ul className="space-y-1">
                         {branch.subtopics.map((subtopic, subIndex) => (
                           <li key={subIndex} className="text-sm pl-4 border-l-2 border-muted">
