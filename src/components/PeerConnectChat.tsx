@@ -229,7 +229,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
   };
 
   return (
-    <Card className="flex flex-col h-[calc(100vh-12rem)] max-w-2xl mx-auto">
+    <Card className="flex flex-col h-[calc(100vh-12rem)] max-w-3xl mx-auto">
       <CardHeader className="border-b py-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base">Chat with {partnerName}</CardTitle>
@@ -248,15 +248,32 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
 
       <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
         {answerSummary && answerSummary.length > 0 && (
-          <div className="bg-muted/50 rounded-lg p-3 space-y-2 mb-2">
-            <p className="text-xs font-semibold text-muted-foreground text-center">🎯 Your Icebreaker Answers</p>
+          <div className="bg-muted/30 rounded-xl p-4 space-y-4 mb-3">
+            <p className="text-xs font-semibold text-muted-foreground text-center">🎯 Icebreaker Answers</p>
             {answerSummary.map((item, i) => (
-              <div key={i} className="text-xs space-y-0.5">
-                <p className="font-medium text-foreground">{item.question}</p>
-                <div className="flex gap-2">
-                  <span className="text-primary">You: {item.myAnswer}</span>
-                  <span className="text-muted-foreground">•</span>
-                  <span className="text-foreground font-medium">{partnerName}: {item.partnerAnswer}</span>
+              <div key={i} className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground text-center">{item.question}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* My answer - left bubble */}
+                  <div className="flex items-start gap-2">
+                    <Avatar className="h-6 w-6 shrink-0 mt-0.5">
+                      <AvatarFallback className="text-[10px] bg-muted">Me</AvatarFallback>
+                    </Avatar>
+                    <div className="rounded-lg bg-muted px-3 py-2 text-xs">
+                      <p className="font-medium text-muted-foreground mb-0.5">You</p>
+                      <p className="text-foreground">{item.myAnswer}</p>
+                    </div>
+                  </div>
+                  {/* Partner answer - right bubble */}
+                  <div className="flex items-start gap-2 justify-end">
+                    <div className="rounded-lg bg-primary px-3 py-2 text-xs">
+                      <p className="font-medium text-primary-foreground/70 mb-0.5">{partnerName}</p>
+                      <p className="text-primary-foreground">{item.partnerAnswer}</p>
+                    </div>
+                    <Avatar className="h-6 w-6 shrink-0 mt-0.5">
+                      <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{partnerName.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                  </div>
                 </div>
               </div>
             ))}
