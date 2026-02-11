@@ -146,7 +146,7 @@ graph TB
 ### [Frontend Architecture](FRONTEND.md)
 - Page structure and routing
 - Component hierarchy
-- UI component library (40+ components)
+- UI component library (40 and more components)
 - State management patterns
 - Form handling and validation
 - Real-time features
