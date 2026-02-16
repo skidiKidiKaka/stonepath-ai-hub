@@ -40,6 +40,32 @@ serve(async (req) => {
     console.log(`Interview coach request from user: ${userId}`);
 
     const { messages, userMessage, mode, careerPath } = await req.json();
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length > 50) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid messages array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (typeof userMessage !== 'string' || userMessage.length > 5000) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid user message' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (mode && !['practice', 'guide'].includes(mode)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid mode' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (careerPath && (typeof careerPath !== 'string' || careerPath.length > 200)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid career path' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

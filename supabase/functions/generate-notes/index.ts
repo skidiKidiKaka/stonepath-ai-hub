@@ -40,6 +40,21 @@ serve(async (req) => {
     console.log(`Notes generation request from user: ${userId}`);
 
     const { content, type } = await req.json();
+
+    // Input validation
+    if (typeof content !== 'string' || content.length === 0 || content.length > 50000) {
+      return new Response(
+        JSON.stringify({ error: 'Content must be a string between 1 and 50000 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!['bullets', 'flashcards', 'mindmap', 'summary'].includes(type)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid type. Must be bullets, flashcards, mindmap, or summary' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     console.log('Generating notes for type:', type);
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -87,9 +102,6 @@ ${content}`;
         systemPrompt = 'You are an expert at creating comprehensive yet concise study summary sheets. Capture all key information in an organized, scannable format.';
         userPrompt = `Create a one-page summary sheet from this content. Include: main concepts, key definitions, important points, and any formulas or examples. Make it comprehensive but concise:\n\n${content}`;
         break;
-      
-      default:
-        throw new Error('Invalid type specified');
     }
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

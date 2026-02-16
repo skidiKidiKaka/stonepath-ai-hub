@@ -40,6 +40,20 @@ serve(async (req) => {
     console.log(`Quiz generation request from user: ${userId}`);
 
     const { category, provider = "lovable" } = await req.json();
+
+    // Input validation
+    if (typeof category !== 'string' || category.length === 0 || category.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid category: must be a string under 200 characters' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (provider && !['lovable', 'deepseek'].includes(provider)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid provider' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     console.log(`Generating quiz for category: ${category} using provider: ${provider}`);
 
