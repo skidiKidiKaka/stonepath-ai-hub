@@ -40,6 +40,22 @@ serve(async (req) => {
     console.log(`AI chat request from user: ${userId}`);
 
     const { messages, provider = "lovable" } = await req.json();
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 100) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid messages: must be an array with 1-100 items' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    for (const msg of messages) {
+      if (typeof msg.content !== 'string' || msg.content.length > 10000) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid message content: must be a string under 10000 characters' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     
     console.log(`Using provider: ${provider}`);
 

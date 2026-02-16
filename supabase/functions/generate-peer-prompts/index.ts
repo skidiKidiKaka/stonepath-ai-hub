@@ -10,11 +10,40 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authSupabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await authSupabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    console.log(`generate-peer-prompts request from user: ${userId}`);
+
     const body = await req.json();
     const { type } = body;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Use service role for cache writes
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -23,6 +52,18 @@ serve(async (req) => {
     // ======= DEMO ANSWER =======
     if (type === "demo-answer") {
       const { question, options } = body;
+      // Input validation
+      if (typeof question !== 'string' || question.length > 500) {
+        return new Response(JSON.stringify({ error: 'Invalid question' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (!Array.isArray(options) || options.length > 10) {
+        return new Response(JSON.stringify({ error: 'Invalid options' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -53,7 +94,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch {
-        // Fallback: pick a random option
         return new Response(JSON.stringify({ selectedOption: Math.floor(Math.random() * options.length) }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -63,9 +103,16 @@ serve(async (req) => {
     // ======= DEMO CHAT =======
     if (type === "demo-chat") {
       const { messages, pillar } = body;
+      // Input validation
+      if (Array.isArray(messages) && messages.length > 50) {
+        return new Response(JSON.stringify({ error: 'Too many messages' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const recentMessages = (messages || []).slice(-10);
       const conversationContext = recentMessages
-        .map((m: any) => `${m.isMe ? "User" : "Alex"}: ${m.content}`)
+        .map((m: any) => `${m.isMe ? "User" : "Alex"}: ${String(m.content).substring(0, 500)}`)
         .join("\n");
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -103,6 +150,15 @@ serve(async (req) => {
     // ======= CONNECTION SPARK =======
     if (type === "spark") {
       const { question, optionA, optionB } = body;
+      // Input validation
+      if (typeof question !== 'string' || question.length > 500 ||
+          typeof optionA !== 'string' || optionA.length > 500 ||
+          typeof optionB !== 'string' || optionB.length > 500) {
+        return new Response(JSON.stringify({ error: 'Invalid input' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -135,6 +191,13 @@ serve(async (req) => {
 
     // ======= GENERATE MCQ PROMPTS =======
     const { pillar } = body;
+    // Input validation
+    if (typeof pillar !== 'string' || pillar.length > 100) {
+      return new Response(JSON.stringify({ error: 'Invalid pillar' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const cacheKey = `peer_${pillar}`;
     const { data: cached } = await supabase
       .from("pct_prompt_cache")

@@ -179,15 +179,25 @@ export const GroupChat = ({ groupId, groupName, userRole, onBack }: GroupChatPro
       return;
     }
 
-    const { data: { publicUrl } } = supabase.storage
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from("group-photos")
-      .getPublicUrl(fileName);
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365); // 1 year expiry
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      toast({
+        title: "Error",
+        description: "Failed to generate photo URL",
+        variant: "destructive",
+      });
+      setUploading(false);
+      return;
+    }
 
     const { error: messageError } = await supabase.from("group_messages" as any).insert({
       group_id: groupId,
       user_id: user.id,
       content: "Shared a photo",
-      image_url: publicUrl,
+      image_url: signedUrlData.signedUrl,
     });
 
     setUploading(false);

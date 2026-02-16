@@ -41,6 +41,26 @@ serve(async (req) => {
     console.log(`Mood tips request from user: ${userId}`);
 
     const { moodLevel, feelings, impacts } = await req.json();
+
+    // Input validation
+    if (typeof moodLevel !== 'number' || moodLevel < 0 || moodLevel > 6) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid mood level: must be 0-6' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!Array.isArray(feelings) || feelings.length > 20 || feelings.some((f: any) => typeof f !== 'string' || f.length > 100)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid feelings array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!Array.isArray(impacts) || impacts.length > 20 || impacts.some((i: any) => typeof i !== 'string' || i.length > 100)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid impacts array' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     console.log('Generating tips for:', { moodLevel, feelings, impacts });
 
@@ -130,15 +150,13 @@ Please provide personalized wellness recommendations that address their specific
       .split('\n')
       .map((line: string) => line.trim())
       .filter((line: string) => {
-        // Accept lines starting with •, -, *, or numbers followed by period/parenthesis
         return line.match(/^[•\-*]/) || line.match(/^\d+[\.\)]/) || (line.length > 10 && !line.includes(':'));
       })
       .map((line: string) => {
-        // Normalize all to bullet format
         let cleaned = line.replace(/^[•\-*]\s*/, '').replace(/^\d+[\.\)]\s*/, '');
         return `• ${cleaned}`;
       })
-      .filter((line: string) => line.length > 3); // Remove empty/too short tips
+      .filter((line: string) => line.length > 3);
 
     // Fallback: if parsing failed, try to extract sentences
     if (tips.length === 0) {
