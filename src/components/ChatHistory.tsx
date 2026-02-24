@@ -14,6 +14,17 @@ import { format } from "date-fns";
 
 const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
 
+const pillarColorMap: Record<string, string> = {
+  Academics: "bg-blue-500 text-white",
+  "Mental Health": "bg-purple-500 text-white",
+  Career: "bg-orange-500 text-white",
+  Relationships: "bg-pink-500 text-white",
+  Finance: "bg-emerald-500 text-white",
+  Fitness: "bg-red-500 text-white",
+  Friendships: "bg-teal-500 text-white",
+  Bullying: "bg-amber-500 text-white",
+};
+
 interface Session {
   id: string;
   pillar: string;
@@ -142,7 +153,7 @@ export const ChatHistory = ({ onViewSession }: ChatHistoryProps) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-medium text-sm">{s.partnerName}</span>
-                <Badge variant="secondary" className="text-xs">{s.pillar}</Badge>
+                <Badge className={`text-xs border-0 ${pillarColorMap[s.pillar] || "bg-secondary text-secondary-foreground"}`}>{s.pillar}</Badge>
               </div>
               <p className="text-xs text-muted-foreground truncate">{s.lastMessage}</p>
               <p className="text-xs text-muted-foreground mt-1">

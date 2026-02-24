@@ -171,6 +171,13 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
             },
           });
           const aiOption = data?.selectedOption ?? Math.floor(Math.random() * 4);
+          // Persist demo answer to DB for history viewing
+          await supabase.from("peer_connect_responses" as any).insert({
+            session_id: sessionId,
+            user_id: DEMO_PEER_UUID,
+            card_index: currentIndex,
+            selected_option: aiOption,
+          });
           setPartnerAnswers((prev) => {
             const updated = [...prev];
             updated[currentIndex] = aiOption;
@@ -178,10 +185,17 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
           });
         } catch (e) {
           console.error("Demo answer failed:", e);
-          // Fallback: random answer
+          const fallback = Math.floor(Math.random() * 4);
+          // Persist fallback answer too
+          supabase.from("peer_connect_responses" as any).insert({
+            session_id: sessionId,
+            user_id: DEMO_PEER_UUID,
+            card_index: currentIndex,
+            selected_option: fallback,
+          });
           setPartnerAnswers((prev) => {
             const updated = [...prev];
-            updated[currentIndex] = Math.floor(Math.random() * 4);
+            updated[currentIndex] = fallback;
             return updated;
           });
         }

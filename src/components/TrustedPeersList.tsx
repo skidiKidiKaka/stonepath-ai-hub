@@ -84,7 +84,7 @@ export const TrustedPeersList = () => {
       <div className="text-center py-12 space-y-2">
         <Users className="w-10 h-10 mx-auto text-muted-foreground/50" />
         <p className="text-muted-foreground">No friends yet</p>
-        <p className="text-xs text-muted-foreground">Add peers during Peer Connect sessions</p>
+        <p className="text-xs text-muted-foreground">Connect with peers in Peer Connect sessions to add them as friends</p>
       </div>
     );
   }
