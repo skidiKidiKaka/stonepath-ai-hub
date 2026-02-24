@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { PCTSession } from "@/components/PCTSession";
 import { PCTStats } from "@/components/PCTStats";
 import { PeerConnectLobby } from "@/components/PeerConnectLobby";
 import { PeerConnectSession } from "@/components/PeerConnectSession";
+import { ChatHistory } from "@/components/ChatHistory";
+import { ChatHistoryDetail } from "@/components/ChatHistoryDetail";
+import { TrustedPeersList } from "@/components/TrustedPeersList";
 
 const pillars = [
   { id: "mental-health", name: "Mental Health", icon: Brain, color: "from-purple-500 to-purple-600", topics: ["Managing Anxiety", "Building Self-Esteem", "Dealing with Stress", "Emotional Awareness"] },
@@ -20,7 +24,7 @@ const pillars = [
   { id: "finance", name: "Finance", icon: DollarSign, color: "from-emerald-500 to-emerald-600", topics: ["Money Mindset", "Saving Goals", "Financial Stress", "Smart Spending"] },
 ];
 
-type View = "pillars" | "topics" | "session" | "peer-lobby" | "peer-session";
+type View = "pillars" | "topics" | "session" | "peer-lobby" | "peer-session" | "chat-detail";
 type Mode = "solo" | "peer";
 
 const HeadspaceHangout = () => {
@@ -32,6 +36,9 @@ const HeadspaceHangout = () => {
   const [peerSessionId, setPeerSessionId] = useState<string | null>(null);
   const [peerPrompts, setPeerPrompts] = useState<any[]>([]);
   const [peerId, setPeerId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("reflect");
+  const [viewingSessionId, setViewingSessionId] = useState<string | null>(null);
+  const [viewingPartnerName, setViewingPartnerName] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,13 +67,22 @@ const HeadspaceHangout = () => {
     setView("peer-session");
   };
 
+  const handleViewSession = (sessionId: string, partnerName: string) => {
+    setViewingSessionId(sessionId);
+    setViewingPartnerName(partnerName);
+    setView("chat-detail");
+  };
+
+  const isInSession = view !== "pillars" && activeTab === "reflect";
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-glow/5 to-secondary/5">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="icon" onClick={() => {
-              if (view === "session") setView("topics");
+              if (view === "chat-detail") { setView("pillars"); setActiveTab("history"); }
+              else if (view === "session") setView("topics");
               else if (view === "topics") setView("pillars");
               else if (view === "peer-lobby") setView("pillars");
               else if (view === "peer-session") setView("pillars");
@@ -86,109 +102,114 @@ const HeadspaceHangout = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {view === "pillars" && (
-          <div className="space-y-8">
-            {/* Mode Toggle */}
-            <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg max-w-xs mx-auto">
-              <Button
-                variant={mode === "solo" ? "default" : "ghost"}
-                size="sm"
-                className="flex-1"
-                onClick={() => setMode("solo")}
-              >
-                <Sparkles className="w-4 h-4 mr-1" /> Solo Reflection
-              </Button>
-              <Button
-                variant={mode === "peer" ? "default" : "ghost"}
-                size="sm"
-                className="flex-1"
-                onClick={() => setMode("peer")}
-              >
-                <Zap className="w-4 h-4 mr-1" /> Peer Connect
-              </Button>
-            </div>
+        {/* Show tabs only when not in a session/detail view */}
+        {!isInSession && view !== "chat-detail" && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3">
+              <TabsTrigger value="reflect">
+                <Sparkles className="w-4 h-4 mr-1" /> Reflect
+              </TabsTrigger>
+              <TabsTrigger value="history">
+                <MessageCircle className="w-4 h-4 mr-1" /> History
+              </TabsTrigger>
+              <TabsTrigger value="friends">
+                <Users className="w-4 h-4 mr-1" /> Friends
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        )}
 
-            <PCTStats />
+        {/* Reflect Tab / Session Views */}
+        {(activeTab === "reflect" || isInSession) && (
+          <>
+            {view === "pillars" && activeTab === "reflect" && (
+              <div className="space-y-8">
+                <div className="flex items-center justify-center gap-2 p-1 bg-muted rounded-lg max-w-xs mx-auto">
+                  <Button variant={mode === "solo" ? "default" : "ghost"} size="sm" className="flex-1" onClick={() => setMode("solo")}>
+                    <Sparkles className="w-4 h-4 mr-1" /> Solo Reflection
+                  </Button>
+                  <Button variant={mode === "peer" ? "default" : "ghost"} size="sm" className="flex-1" onClick={() => setMode("peer")}>
+                    <Zap className="w-4 h-4 mr-1" /> Peer Connect
+                  </Button>
+                </div>
 
-            <div>
-              <h2 className="text-xl font-bold mb-4">
-                {mode === "peer" ? "Pick a pillar to match on" : "Choose a Pillar"}
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {pillars.map((pillar) => {
-                  const Icon = pillar.icon;
-                  return (
-                    <Card
-                      key={pillar.id}
-                      className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
-                      onClick={() => handlePillarSelect(pillar)}
-                    >
-                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
-                        <Icon className="w-6 h-6 text-white" />
-                      </div>
-                      <span className="font-semibold text-center">{pillar.name}</span>
-                      <span className="text-xs text-muted-foreground">{pillar.topics.length} topics</span>
+                <PCTStats />
+
+                <div>
+                  <h2 className="text-xl font-bold mb-4">
+                    {mode === "peer" ? "Pick a pillar to match on" : "Choose a Pillar"}
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {pillars.map((pillar) => {
+                      const Icon = pillar.icon;
+                      return (
+                        <Card
+                          key={pillar.id}
+                          className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
+                          onClick={() => handlePillarSelect(pillar)}
+                        >
+                          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
+                            <Icon className="w-6 h-6 text-white" />
+                          </div>
+                          <span className="font-semibold text-center">{pillar.name}</span>
+                          <span className="text-xs text-muted-foreground">{pillar.topics.length} topics</span>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {view === "topics" && selectedPillar && (
+              <div className="max-w-2xl mx-auto space-y-6">
+                <div className="text-center">
+                  <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${selectedPillar.color} flex items-center justify-center mx-auto mb-3`}>
+                    <selectedPillar.icon className="w-8 h-8 text-white" />
+                  </div>
+                  <h2 className="text-xl font-bold">{selectedPillar.name}</h2>
+                  <p className="text-muted-foreground">Choose a topic to reflect on</p>
+                </div>
+                <div className="grid gap-3">
+                  {selectedPillar.topics.map((topic) => (
+                    <Card key={topic} className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all" onClick={() => handleTopicSelect(topic)}>
+                      <CardContent className="p-0 flex items-center justify-between">
+                        <span className="font-medium">{topic}</span>
+                        <Sparkles className="w-4 h-4 text-primary" />
+                      </CardContent>
                     </Card>
-                  );
-                })}
+                  ))}
+                </div>
               </div>
-            </div>
-          </div>
+            )}
+
+            {view === "session" && selectedPillar && (
+              <PCTSession pillar={selectedPillar.name} topic={selectedTopic} onComplete={() => { setView("pillars"); setSelectedPillar(null); }} onBack={() => setView("topics")} />
+            )}
+
+            {view === "peer-lobby" && selectedPillar && (
+              <PeerConnectLobby pillar={selectedPillar.name} pillarColor={selectedPillar.color} onMatched={handlePeerMatched} onCancel={() => { setView("pillars"); setSelectedPillar(null); }} />
+            )}
+
+            {view === "peer-session" && peerSessionId && peerId && (
+              <PeerConnectSession sessionId={peerSessionId} prompts={peerPrompts} partnerId={peerId} onComplete={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }} onBack={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }} />
+            )}
+          </>
         )}
 
-        {view === "topics" && selectedPillar && (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="text-center">
-              <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${selectedPillar.color} flex items-center justify-center mx-auto mb-3`}>
-                <selectedPillar.icon className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-xl font-bold">{selectedPillar.name}</h2>
-              <p className="text-muted-foreground">Choose a topic to reflect on</p>
-            </div>
-
-            <div className="grid gap-3">
-              {selectedPillar.topics.map((topic) => (
-                <Card
-                  key={topic}
-                  className="p-4 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all"
-                  onClick={() => handleTopicSelect(topic)}
-                >
-                  <CardContent className="p-0 flex items-center justify-between">
-                    <span className="font-medium">{topic}</span>
-                    <Sparkles className="w-4 h-4 text-primary" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+        {/* Chat History Tab */}
+        {activeTab === "history" && view !== "chat-detail" && (
+          <ChatHistory onViewSession={handleViewSession} />
         )}
 
-        {view === "session" && selectedPillar && (
-          <PCTSession
-            pillar={selectedPillar.name}
-            topic={selectedTopic}
-            onComplete={() => { setView("pillars"); setSelectedPillar(null); }}
-            onBack={() => setView("topics")}
-          />
+        {/* Chat Detail View */}
+        {view === "chat-detail" && viewingSessionId && (
+          <ChatHistoryDetail sessionId={viewingSessionId} partnerName={viewingPartnerName} onBack={() => { setView("pillars"); setActiveTab("history"); }} />
         )}
 
-        {view === "peer-lobby" && selectedPillar && (
-          <PeerConnectLobby
-            pillar={selectedPillar.name}
-            pillarColor={selectedPillar.color}
-            onMatched={handlePeerMatched}
-            onCancel={() => { setView("pillars"); setSelectedPillar(null); }}
-          />
-        )}
-
-        {view === "peer-session" && peerSessionId && peerId && (
-          <PeerConnectSession
-            sessionId={peerSessionId}
-            prompts={peerPrompts}
-            partnerId={peerId}
-            onComplete={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }}
-            onBack={() => { setView("pillars"); setSelectedPillar(null); setPeerSessionId(null); }}
-          />
+        {/* Friends Tab */}
+        {activeTab === "friends" && view !== "chat-detail" && (
+          <TrustedPeersList />
         )}
       </main>
     </div>
