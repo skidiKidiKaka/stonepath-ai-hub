@@ -44,7 +44,7 @@ const Profile = () => {
     if (data?.avatar_url) {
       setAvatarPath(data.avatar_url);
       const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.avatar_url);
-      setAvatarUrl(urlData.publicUrl);
+      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
     }
   };
 
