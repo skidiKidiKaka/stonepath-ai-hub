@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
+const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
+
 interface Peer {
   id: string;
   peer_id: string;
@@ -55,7 +57,7 @@ export const TrustedPeersList = () => {
           id: tp.id,
           peer_id: tp.peer_id,
           created_at: tp.created_at || "",
-          name: profile?.full_name || "Peer",
+          name: tp.peer_id === DEMO_PEER_UUID ? "Alex" : (profile?.full_name || "Peer"),
           avatar: profile?.avatar_url || null,
         };
       })
