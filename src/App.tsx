@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import TaskPlanner from "./pages/TaskPlanner";
 import Profile from "./pages/Profile";
+import HelpSupport from "./pages/HelpSupport";
+import Feedback from "./pages/Feedback";
 import NotFound from "./pages/NotFound";
 import MentalHealth from "./pages/MentalHealth";
 import Academics from "./pages/Academics";
@@ -35,6 +37,8 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tasks" element={<TaskPlanner />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/help" element={<HelpSupport />} />
+            <Route path="/feedback" element={<Feedback />} />
             <Route path="/headspace-hangout" element={<HeadspaceHangout />} />
             <Route path="/mental-health" element={<MentalHealth />} />
             <Route path="/academics" element={<Academics />} />

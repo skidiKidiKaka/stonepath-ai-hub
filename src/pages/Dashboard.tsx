@@ -174,11 +174,11 @@ const Dashboard = () => {
                 Notifications
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate("/bullying")}>
+              <DropdownMenuItem onClick={() => navigate("/help")}>
                 <HelpCircle className="mr-2 h-4 w-4" />
                 Help & Support
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast.info("Feedback feature coming soon!")}>
+              <DropdownMenuItem onClick={() => navigate("/feedback")}>
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Feedback
               </DropdownMenuItem>
