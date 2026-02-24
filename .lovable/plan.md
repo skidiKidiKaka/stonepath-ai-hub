@@ -1,52 +1,58 @@
 
 
-## Fix Chat History Bugs, Add Pillar Colors, and Clarify Friend Adding
+## Fix Peer Connect UX Issues
 
 ### Overview
-Three issues to address: (1) pillar badges in chat history need distinct colors per category, (2) demo peer icebreaker answers show as "---" because they are never saved to the database, and (3) clarify and improve the "Add Friend" flow.
+Four fixes: reduce demo wait time, fix pre-selected answers on new cards, treat Alex as a regular user (not "Demo"), and fix the chat layout so your responses are always on the right.
 
 ### Changes
 
-#### 1. Pillar-Colored Badges in Chat History
-
-**File: `src/components/ChatHistory.tsx`**
-
-Add a helper function that maps each pillar name to a specific Tailwind color class, following the existing project color scheme:
-
-| Pillar | Color |
-|--------|-------|
-| Academics | Blue (`bg-blue-500`) |
-| Mental Health | Purple (`bg-purple-500`) |
-| Career | Orange (`bg-orange-500`) |
-| Relationships | Pink (`bg-pink-500`) |
-| Finance | Green (`bg-emerald-500`) |
-| Fitness | Red (`bg-red-500`) |
-| Friendships | Teal (`bg-teal-500`) |
-| Bullying | Amber (`bg-amber-500`) |
-| Default | Gray (current secondary) |
-
-Apply these as inline className overrides on the `Badge` component for each session card.
-
-#### 2. Fix Demo Peer Icebreaker Answers Not Persisting
+#### 1. Reduce Demo Wait Time
 
 **File: `src/components/PeerConnectSession.tsx`**
 
-The bug: When in demo mode, the partner's icebreaker answer is only stored in React state (`setPartnerAnswers`) but never inserted into the `peer_connect_responses` database table. When `ChatHistoryDetail` later fetches responses from the DB, it finds nothing for the demo peer, so all answers show as "---".
+Reduce the setTimeout delay from `800 + random * 700` (0.8-1.5s) to `300 + random * 400` (0.3-0.7s). The real latency comes from the edge function call itself, so the artificial delay before it should be minimal.
 
-Fix: After the demo AI selects an answer, also insert a row into `peer_connect_responses` with `user_id = DEMO_PEER_UUID`, `session_id`, `card_index`, and `selected_option`. This mirrors what happens for real peers and ensures the data persists for history viewing.
+Also reduce the chat reply delay in **`src/components/PeerConnectChat.tsx`** from `1000 + random * 2000` (1-3s) to `500 + random * 1000` (0.5-1.5s).
 
-#### 3. Improve "Add Friend" Flow
+#### 2. Fix Pre-Selected Answer on New Card
 
-Currently, the "Add Peer" button appears during an active Peer Connect chat session (in `PeerConnectChat.tsx`). For demo mode, it is intentionally hidden since Alex is not a real user.
+**File: `src/components/PeerConnectCard.tsx`**
 
-To make the friend-adding flow clearer:
-- **Keep the current behavior**: The "Add Peer" button appears during live chat with real peers
-- **Add a small info note** in the Friends tab (`TrustedPeersList.tsx`) explaining how to add friends: "Connect with peers in Peer Connect sessions to add them as friends"
-- This is by design -- friends are added organically through peer sessions, not manually
+The `selected` state is initialized to `""` but never resets when navigating to the next card. Add a `useEffect` that resets `selected` to `""` whenever `cardIndex` changes.
+
+#### 3. Remove "Demo" Label and Allow Adding Alex as Friend
+
+**File: `src/components/ChatHistory.tsx`**
+- Change `"Alex (Demo)"` to `"Alex"` in the partner name mapping.
+
+**File: `src/components/ChatHistoryDetail.tsx`**
+- No changes needed here -- it receives `partnerName` as a prop from the parent.
+
+**File: `src/components/PeerConnectChat.tsx`**
+- Remove the line `if (isDemo) setAddedAsPeer(true);` so the "Add Peer" button shows for Alex too, allowing users to add Alex as a friend.
+
+**File: `src/components/PeerConnectSession.tsx`**
+- `partnerName` is already set to `"Alex"` (no "Demo" suffix), so no change needed.
+
+#### 4. Fix Chat Layout: My Responses on Right, Partner on Left
+
+The icebreaker summary in both `PeerConnectChat.tsx` and `ChatHistoryDetail.tsx` currently shows "Me" on the LEFT and the partner on the RIGHT. This is the opposite of the chat message layout. Swap them so:
+- **Left side**: Partner (Alex) with their avatar and colored bubble
+- **Right side**: You (Me) with your avatar and primary bubble
+
+**Files: `src/components/PeerConnectChat.tsx` and `src/components/ChatHistoryDetail.tsx`**
+
+In the icebreaker summary grid, swap the two column divs:
+- First column (left): Partner avatar + partner answer in `bg-muted` style
+- Second column (right): "You" answer in `bg-primary` style + "Me" avatar
+
+The chat messages already have the correct layout (Me = right, partner = left) so no changes needed there.
 
 ### Technical Details
 
-- **Pillar color mapping**: A simple `Record<string, string>` lookup with a fallback for unknown pillars
-- **Demo response persistence**: Add one `supabase.from("peer_connect_responses").insert(...)` call alongside the existing `setPartnerAnswers` state update in the demo answer handler (around line 174 of PeerConnectSession.tsx)
-- **No database changes needed** -- all tables and policies already exist
+- **PeerConnectCard reset**: `useEffect(() => { setSelected(""); }, [cardIndex]);`
+- **Delay reduction**: Simple constant changes in setTimeout calls
+- **Layout swap**: Swap the order of the two grid children in the icebreaker summary, and swap their styling (partner gets `bg-muted`, you get `bg-primary`)
+- No database or migration changes needed
 
