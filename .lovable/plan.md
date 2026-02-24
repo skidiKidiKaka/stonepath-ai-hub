@@ -1,32 +1,31 @@
 
 
-## Redesign Icebreaker Answers Summary in Peer Connect Chat
+## Profile Dropdown Menu
 
-### Problem
-The "Your Icebreaker Answers" section displays questions and answers in a cramped, inline format that makes it hard to distinguish who answered what. The answers run together with just a bullet separator.
+Replace the current header buttons (Tasks, Logout) with a profile avatar/icon that opens a dropdown menu containing all user-related actions.
 
-### Solution
-Redesign the answer summary section with chat-bubble-style cards for each person's answer, and expand the overall chat card width for more breathing room.
+### Design
 
-### Changes
-
-**File: `src/components/PeerConnectChat.tsx`**
-
-1. **Expand chat card width** - Change `max-w-2xl` to `max-w-3xl` on the outer Card component to give more horizontal space.
-
-2. **Redesign answer summary layout** - Replace the current inline format with a structured card layout per question:
-   - Each question displayed as a centered label/header
-   - Two side-by-side chat bubbles below each question:
-     - Left bubble (muted background) showing "You" + your answer
-     - Right bubble (primary/purple background) showing partner name + their answer
-   - Proper spacing and padding between question blocks
-   - Small avatar initials on each bubble for visual identity
-
-### Visual Result
-Each icebreaker question will have its own mini-section with clearly separated, color-coded chat bubbles -- making it immediately obvious who said what, with a clean and symmetric layout.
+The header's right side will show:
+- A clickable avatar (using the user's initials as fallback)
+- Clicking it opens a dropdown menu with:
+  - User name and email displayed at the top
+  - "Tasks" menu item (with ListTodo icon)
+  - Separator
+  - "Logout" menu item (with LogOut icon)
 
 ### Technical Details
-- Only one file modified: `src/components/PeerConnectChat.tsx`
-- The answer summary JSX block (approx. lines 173-189) will be rewritten
-- The outer Card className on line 165 will be updated from `max-w-2xl` to `max-w-3xl`
-- Uses existing Tailwind classes and design patterns already present in the component
+
+**File: `src/pages/Dashboard.tsx`**
+
+1. Add imports for `Avatar`, `AvatarFallback`, `DropdownMenu` and related components
+2. Replace the current `div` with Tasks button + Logout button with a `DropdownMenu` containing:
+   - `DropdownMenuTrigger` wrapping an `Avatar` showing user initials
+   - `DropdownMenuContent` with:
+     - `DropdownMenuLabel` showing user name and email
+     - `DropdownMenuSeparator`
+     - `DropdownMenuItem` for Tasks (navigates to /tasks)
+     - `DropdownMenuSeparator`
+     - `DropdownMenuItem` for Logout (calls handleLogout)
+3. Helper function to extract user initials from name or email
+
