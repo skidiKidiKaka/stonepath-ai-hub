@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check, Sparkles, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,11 @@ export const PeerConnectCard = ({
   waitingForPartner,
 }: PeerConnectCardProps) => {
   const [selected, setSelected] = useState<string>("");
+  
+  useEffect(() => {
+    setSelected("");
+  }, [cardIndex]);
+
   const hasSubmitted = myAnswer !== null;
   const isRevealed = myAnswer !== null && partnerAnswer !== null;
 

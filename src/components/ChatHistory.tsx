@@ -93,7 +93,7 @@ export const ChatHistory = ({ onViewSession }: ChatHistoryProps) => {
           completed_at: s.completed_at || s.created_at || "",
           user_a: s.user_a,
           user_b: s.user_b,
-          partnerName: partnerId === DEMO_PEER_UUID ? "Alex (Demo)" : (profile?.full_name || "Peer"),
+          partnerName: partnerId === DEMO_PEER_UUID ? "Alex" : (profile?.full_name || "Peer"),
           partnerAvatar: profile?.avatar_url || null,
           lastMessage: msgs?.[0]?.content || "No messages",
         };

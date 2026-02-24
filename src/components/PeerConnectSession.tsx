@@ -160,7 +160,7 @@ export const PeerConnectSession = ({ sessionId, prompts, partnerId, onComplete, 
 
     // Demo mode: simulate partner answering after a delay
     if (isDemo) {
-      const delay = 800 + Math.random() * 700; // 0.8-1.5 seconds
+      const delay = 300 + Math.random() * 400; // 0.3-0.7 seconds
       setTimeout(async () => {
         try {
           const { data } = await supabase.functions.invoke("generate-peer-prompts", {
