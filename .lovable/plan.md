@@ -1,77 +1,52 @@
 
 
-## Chat History & Friends System for Headspace Hangout
+## Fix Chat History Bugs, Add Pillar Colors, and Clarify Friend Adding
 
 ### Overview
-Add the ability for users to view past Peer Connect chat sessions, delete them, and manage a friends/contacts list from peers they've connected with -- all accessible from the Headspace Hangout page.
+Three issues to address: (1) pillar badges in chat history need distinct colors per category, (2) demo peer icebreaker answers show as "---" because they are never saved to the database, and (3) clarify and improve the "Add Friend" flow.
 
 ### Changes
 
-#### 1. New "Chat History" View in Headspace Hangout
+#### 1. Pillar-Colored Badges in Chat History
 
-**File: `src/pages/HeadspaceHangout.tsx`**
+**File: `src/components/ChatHistory.tsx`**
 
-Add a new view state `"history"` and a button in the pillars view (next to the mode toggle) to access it. This view will:
+Add a helper function that maps each pillar name to a specific Tailwind color class, following the existing project color scheme:
 
-- Fetch all `peer_connect_sessions` for the current user (where `user_a` or `user_b` matches their ID and `status = 'completed'`)
-- Display each session as a card showing: partner name, pillar, date, and a preview snippet of the last message
-- Clicking a card opens a read-only chat view showing the full conversation
-- Each card has a delete button (with confirmation dialog) that deletes the session and its associated messages/responses
+| Pillar | Color |
+|--------|-------|
+| Academics | Blue (`bg-blue-500`) |
+| Mental Health | Purple (`bg-purple-500`) |
+| Career | Orange (`bg-orange-500`) |
+| Relationships | Pink (`bg-pink-500`) |
+| Finance | Green (`bg-emerald-500`) |
+| Fitness | Red (`bg-red-500`) |
+| Friendships | Teal (`bg-teal-500`) |
+| Bullying | Amber (`bg-amber-500`) |
+| Default | Gray (current secondary) |
 
-#### 2. New Component: `ChatHistory`
+Apply these as inline className overrides on the `Badge` component for each session card.
 
-**New file: `src/components/ChatHistory.tsx`**
+#### 2. Fix Demo Peer Icebreaker Answers Not Persisting
 
-- Fetches completed `peer_connect_sessions` joined with partner profile data
-- Fetches last message from `peer_connect_messages` for each session as preview
-- Renders a list of session cards with partner avatar, name, pillar badge, date, and message preview
-- Delete action: deletes from `peer_connect_messages`, `peer_connect_responses`, then `peer_connect_sessions`
-- "View Chat" action: opens a read-only version of the conversation
+**File: `src/components/PeerConnectSession.tsx`**
 
-#### 3. New Component: `ChatHistoryDetail`
+The bug: When in demo mode, the partner's icebreaker answer is only stored in React state (`setPartnerAnswers`) but never inserted into the `peer_connect_responses` database table. When `ChatHistoryDetail` later fetches responses from the DB, it finds nothing for the demo peer, so all answers show as "---".
 
-**New file: `src/components/ChatHistoryDetail.tsx`**
+Fix: After the demo AI selects an answer, also insert a row into `peer_connect_responses` with `user_id = DEMO_PEER_UUID`, `session_id`, `card_index`, and `selected_option`. This mirrors what happens for real peers and ensures the data persists for history viewing.
 
-- Read-only view of a past conversation
-- Fetches all messages for the session, displays them in the same bubble format as `PeerConnectChat`
-- Shows the icebreaker answer summary at the top (from session prompts + responses)
-- Back button returns to history list
+#### 3. Improve "Add Friend" Flow
 
-#### 4. "Friends" / Trusted Peers List
+Currently, the "Add Peer" button appears during an active Peer Connect chat session (in `PeerConnectChat.tsx`). For demo mode, it is intentionally hidden since Alex is not a real user.
 
-**New file: `src/components/TrustedPeersList.tsx`**
-
-- Fetches from `trusted_peers` table joined with `profiles` to get names/avatars
-- Displays each friend as a card with avatar, name, and date added
-- "Remove" button to delete the trusted peer relationship
-- "Chat" button -- navigates to start a new Peer Connect session with that specific peer (future enhancement, for now shows "Coming soon" toast)
-
-#### 5. Add Tab Navigation in Headspace Hangout
-
-Add a tab bar or secondary navigation in the Headspace Hangout header area with:
-- **Reflect** (default -- current pillars/session flow)
-- **Chat History** (past peer connect conversations)
-- **Friends** (trusted peers list)
-
-#### 6. Database: Add DELETE Policies
-
-**SQL Migration** to allow users to delete their own session data:
-
-- `peer_connect_sessions`: Allow DELETE where `user_a = auth.uid() OR user_b = auth.uid()`
-- `peer_connect_messages`: Allow DELETE where the user is a participant in the session
-- `peer_connect_responses`: Allow DELETE where the user is a participant in the session
-- `trusted_peers`: Already has ALL policy, so DELETE is covered
-
-#### 7. Update `PeerConnectChat` "Add Peer" Flow
-
-In `src/components/PeerConnectChat.tsx`, the "Add Peer" button already inserts into `trusted_peers`. Add a toast that says "Added as Friend!" instead of "Added as Trusted Peer!" to match the new terminology.
+To make the friend-adding flow clearer:
+- **Keep the current behavior**: The "Add Peer" button appears during live chat with real peers
+- **Add a small info note** in the Friends tab (`TrustedPeersList.tsx`) explaining how to add friends: "Connect with peers in Peer Connect sessions to add them as friends"
+- This is by design -- friends are added organically through peer sessions, not manually
 
 ### Technical Details
 
-- **Chat History fetching**: Query `peer_connect_sessions` with `.or('user_a.eq.{userId},user_b.eq.{userId}')` and `status = 'completed'`, ordered by `completed_at desc`
-- **Partner profile lookup**: For each session, determine the partner ID (whichever of `user_a`/`user_b` is not the current user), then batch-fetch profiles
-- **Delete cascade**: When deleting a session, first delete `peer_connect_messages` and `peer_connect_responses` for that session_id, then delete the session itself
-- **Friends list**: Simple query on `trusted_peers` where `user_id = auth.uid()`, joined with `profiles` on `peer_id = profiles.user_id`
-- **Read-only chat**: Reuse the bubble styling from `PeerConnectChat` but without the input form
-- **No new tables needed** -- all data already exists in `peer_connect_sessions`, `peer_connect_messages`, `peer_connect_responses`, and `trusted_peers`
+- **Pillar color mapping**: A simple `Record<string, string>` lookup with a fallback for unknown pillars
+- **Demo response persistence**: Add one `supabase.from("peer_connect_responses").insert(...)` call alongside the existing `setPartnerAnswers` state update in the demo answer handler (around line 174 of PeerConnectSession.tsx)
+- **No database changes needed** -- all tables and policies already exist
 
