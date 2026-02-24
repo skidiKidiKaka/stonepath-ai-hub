@@ -1,18 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo, Sparkles } from "lucide-react";
+import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo, Sparkles, User, Moon, Sun, Bell, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import { AiChatDialog } from "@/components/AiChatDialog";
 import { NewsCarousel } from "@/components/NewsCarousel";
 import { PCTStats } from "@/components/PCTStats";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Switch } from "@/components/ui/switch";
+import { useTheme } from "next-themes";
 
-const getUserInitials = (user: User): string => {
+const getUserInitials = (user: SupabaseUser): string => {
   const name = user.user_metadata?.full_name;
   if (name) {
     return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -56,30 +58,31 @@ const affirmations = [
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [currentAffirmation, setCurrentAffirmation] = useState(0);
   const [aiChatOpen, setAiChatOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    // Check authentication
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
         navigate("/auth");
         return;
       }
       setUser(session.user);
+      fetchAvatarUrl(session.user.id);
     });
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         navigate("/auth");
       } else {
         setUser(session.user);
+        fetchAvatarUrl(session.user.id);
       }
     });
 
-    // Rotate affirmations
     const interval = setInterval(() => {
       setCurrentAffirmation((prev) => (prev + 1) % affirmations.length);
     }, 8000);
@@ -90,6 +93,18 @@ const Dashboard = () => {
     };
   }, [navigate]);
 
+  const fetchAvatarUrl = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("user_id", userId)
+      .single();
+    if (data?.avatar_url) {
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.avatar_url);
+      setAvatarUrl(urlData.publicUrl);
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast.success("Logged out successfully");
@@ -99,6 +114,8 @@ const Dashboard = () => {
   const handlePillarClick = (pillarId: string) => {
     navigate(`/${pillarId}`);
   };
+
+  const isDark = theme === "dark";
 
   if (!user) return null;
 
@@ -117,6 +134,7 @@ const Dashboard = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <Avatar className="h-9 w-9">
+                  {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile" />}
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
                     {getUserInitials(user)}
                   </AvatarFallback>
@@ -131,12 +149,41 @@ const Dashboard = () => {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <User className="mr-2 h-4 w-4" />
+                Edit Profile
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/tasks")}>
                 <ListTodo className="mr-2 h-4 w-4" />
                 Tasks
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
+              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  {isDark ? <Moon className="mr-2 h-4 w-4" /> : <Sun className="mr-2 h-4 w-4" />}
+                  Dark Mode
+                </div>
+                <Switch
+                  checked={isDark}
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                  className="ml-2"
+                />
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Notifications coming soon!")}>
+                <Bell className="mr-2 h-4 w-4" />
+                Notifications
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/bullying")}>
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Help & Support
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Feedback feature coming soon!")}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Feedback
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </DropdownMenuItem>
