@@ -1,71 +1,77 @@
 
 
-## Enhanced Profile Menu with Settings & Editable Profile
+## Chat History & Friends System for Headspace Hangout
 
 ### Overview
-Expand the profile dropdown into a rich menu with more options, and create a dedicated Profile/Settings page where users can edit their information. Also wire up dark/light mode toggle using `next-themes` (already installed).
+Add the ability for users to view past Peer Connect chat sessions, delete them, and manage a friends/contacts list from peers they've connected with -- all accessible from the Headspace Hangout page.
 
 ### Changes
 
-#### 1. Wire up Dark Mode (ThemeProvider)
+#### 1. New "Chat History" View in Headspace Hangout
 
-**File: `src/App.tsx`**
-- Wrap the app with `ThemeProvider` from `next-themes` (already installed as a dependency)
-- Set `attribute="class"`, `defaultTheme="system"`, `enableSystem`
+**File: `src/pages/HeadspaceHangout.tsx`**
 
-#### 2. Expand the Profile Dropdown Menu
+Add a new view state `"history"` and a button in the pillars view (next to the mode toggle) to access it. This view will:
 
-**File: `src/pages/Dashboard.tsx`**
-Add these items to the dropdown (grouped with separators):
+- Fetch all `peer_connect_sessions` for the current user (where `user_a` or `user_b` matches their ID and `status = 'completed'`)
+- Display each session as a card showing: partner name, pillar, date, and a preview snippet of the last message
+- Clicking a card opens a read-only chat view showing the full conversation
+- Each card has a delete button (with confirmation dialog) that deletes the session and its associated messages/responses
 
-- **User info section** (existing) - name + email
-- **Profile & Settings group:**
-  - "Edit Profile" (User icon) - navigates to `/profile`
-  - "Tasks" (ListTodo icon) - existing, navigates to `/tasks`
-- **Preferences group:**
-  - "Dark Mode" toggle (Moon/Sun icon) - inline theme toggle using `useTheme()` from next-themes
-  - "Notifications" (Bell icon) - placeholder for future, shows toast "Coming soon"
-- **Support group:**
-  - "Help & Support" (HelpCircle icon) - navigates to `/bullying` (peer support page)
-  - "Feedback" (MessageSquare icon) - placeholder, shows toast
-- **Logout** (existing)
+#### 2. New Component: `ChatHistory`
 
-#### 3. Create a Profile Settings Page
+**New file: `src/components/ChatHistory.tsx`**
 
-**New file: `src/pages/Profile.tsx`**
+- Fetches completed `peer_connect_sessions` joined with partner profile data
+- Fetches last message from `peer_connect_messages` for each session as preview
+- Renders a list of session cards with partner avatar, name, pillar badge, date, and message preview
+- Delete action: deletes from `peer_connect_messages`, `peer_connect_responses`, then `peer_connect_sessions`
+- "View Chat" action: opens a read-only version of the conversation
 
-A full-page profile editor with sections:
+#### 3. New Component: `ChatHistoryDetail`
 
-- **Profile Picture**: Upload avatar image to a new `avatars` storage bucket, display current avatar or initials fallback
-- **Personal Info**: Editable full name (updates `auth.user_metadata` via `supabase.auth.updateUser()` and the `profiles` table)
-- **Email Display**: Show email (read-only, since changing email requires verification flow)
-- **Password Change**: "Update Password" form using `supabase.auth.updateUser({ password })`
-- **Theme Preference**: Light/Dark/System toggle using `next-themes`
-- **Back to Dashboard** button
+**New file: `src/components/ChatHistoryDetail.tsx`**
 
-#### 4. Add Route
+- Read-only view of a past conversation
+- Fetches all messages for the session, displays them in the same bubble format as `PeerConnectChat`
+- Shows the icebreaker answer summary at the top (from session prompts + responses)
+- Back button returns to history list
 
-**File: `src/App.tsx`**
-- Add `<Route path="/profile" element={<Profile />} />`
+#### 4. "Friends" / Trusted Peers List
 
-#### 5. Database: Create Avatars Storage Bucket
+**New file: `src/components/TrustedPeersList.tsx`**
 
-SQL migration to:
-- Create an `avatars` storage bucket (public, so avatar URLs work everywhere)
-- Add RLS policies: authenticated users can upload to their own folder, anyone can view (public bucket)
+- Fetches from `trusted_peers` table joined with `profiles` to get names/avatars
+- Displays each friend as a card with avatar, name, and date added
+- "Remove" button to delete the trusted peer relationship
+- "Chat" button -- navigates to start a new Peer Connect session with that specific peer (future enhancement, for now shows "Coming soon" toast)
 
-#### 6. Update Profiles Table
+#### 5. Add Tab Navigation in Headspace Hangout
 
-- Add `avatar_url` column to the `profiles` table so we can store the avatar path
+Add a tab bar or secondary navigation in the Headspace Hangout header area with:
+- **Reflect** (default -- current pillars/session flow)
+- **Chat History** (past peer connect conversations)
+- **Friends** (trusted peers list)
 
-#### 7. Update Dashboard Avatar
+#### 6. Database: Add DELETE Policies
 
-Update the `Avatar` component in the Dashboard header to show the user's uploaded profile picture (via `AvatarImage`) if available, falling back to initials.
+**SQL Migration** to allow users to delete their own session data:
+
+- `peer_connect_sessions`: Allow DELETE where `user_a = auth.uid() OR user_b = auth.uid()`
+- `peer_connect_messages`: Allow DELETE where the user is a participant in the session
+- `peer_connect_responses`: Allow DELETE where the user is a participant in the session
+- `trusted_peers`: Already has ALL policy, so DELETE is covered
+
+#### 7. Update `PeerConnectChat` "Add Peer" Flow
+
+In `src/components/PeerConnectChat.tsx`, the "Add Peer" button already inserts into `trusted_peers`. Add a toast that says "Added as Friend!" instead of "Added as Trusted Peer!" to match the new terminology.
 
 ### Technical Details
 
-- **Theme toggle**: Uses `next-themes` `useTheme()` hook. The `.dark` class CSS variables are already defined in `index.css`
-- **Avatar upload**: Uses Supabase storage with path `{user_id}/avatar.png`. Public bucket so the URL can be used as an `<img>` src
-- **Profile updates**: `supabase.auth.updateUser({ data: { full_name } })` for auth metadata + update `profiles` table
-- **Password change**: `supabase.auth.updateUser({ password: newPassword })` with confirmation field validation
+- **Chat History fetching**: Query `peer_connect_sessions` with `.or('user_a.eq.{userId},user_b.eq.{userId}')` and `status = 'completed'`, ordered by `completed_at desc`
+- **Partner profile lookup**: For each session, determine the partner ID (whichever of `user_a`/`user_b` is not the current user), then batch-fetch profiles
+- **Delete cascade**: When deleting a session, first delete `peer_connect_messages` and `peer_connect_responses` for that session_id, then delete the session itself
+- **Friends list**: Simple query on `trusted_peers` where `user_id = auth.uid()`, joined with `profiles` on `peer_id = profiles.user_id`
+- **Read-only chat**: Reuse the bubble styling from `PeerConnectChat` but without the input form
+- **No new tables needed** -- all data already exists in `peer_connect_sessions`, `peer_connect_messages`, `peer_connect_responses`, and `trusted_peers`
 
