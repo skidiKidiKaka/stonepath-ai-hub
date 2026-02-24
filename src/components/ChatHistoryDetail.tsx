@@ -101,24 +101,26 @@ export const ChatHistoryDetail = ({ sessionId, partnerName, onBack }: ChatHistor
               <div key={i} className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground text-center">{item.question}</p>
                 <div className="grid grid-cols-2 gap-3">
+                  {/* Partner answer - left */}
                   <div className="flex items-start gap-2">
-                    <Avatar className="h-6 w-6 shrink-0 mt-0.5">
-                      <AvatarFallback className="text-[10px] bg-muted">Me</AvatarFallback>
-                    </Avatar>
-                    <div className="rounded-lg bg-muted px-3 py-2 text-xs">
-                      <p className="font-medium text-muted-foreground mb-0.5">You</p>
-                      <p className="text-foreground">{item.myAnswer}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-2 justify-end">
-                    <div className="rounded-lg bg-primary px-3 py-2 text-xs">
-                      <p className="font-medium text-primary-foreground/70 mb-0.5">{partnerName}</p>
-                      <p className="text-primary-foreground">{item.partnerAnswer}</p>
-                    </div>
                     <Avatar className="h-6 w-6 shrink-0 mt-0.5">
                       <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
                         {partnerName.charAt(0)}
                       </AvatarFallback>
+                    </Avatar>
+                    <div className="rounded-lg bg-muted px-3 py-2 text-xs">
+                      <p className="font-medium text-muted-foreground mb-0.5">{partnerName}</p>
+                      <p className="text-foreground">{item.partnerAnswer}</p>
+                    </div>
+                  </div>
+                  {/* My answer - right */}
+                  <div className="flex items-start gap-2 justify-end">
+                    <div className="rounded-lg bg-primary px-3 py-2 text-xs">
+                      <p className="font-medium text-primary-foreground/70 mb-0.5">You</p>
+                      <p className="text-primary-foreground">{item.myAnswer}</p>
+                    </div>
+                    <Avatar className="h-6 w-6 shrink-0 mt-0.5">
+                      <AvatarFallback className="text-[10px] bg-muted">Me</AvatarFallback>
                     </Avatar>
                   </div>
                 </div>

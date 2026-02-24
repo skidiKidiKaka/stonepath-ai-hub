@@ -73,8 +73,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
         if (existing) setAddedAsPeer(true);
       }
 
-      // Hide "Add Peer" for demo
-      if (isDemo) setAddedAsPeer(true);
+      // Allow adding Alex as friend too
     };
 
     init();
@@ -119,7 +118,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
 
     // Demo mode: get AI reply
     if (isDemo) {
-      const delay = 1000 + Math.random() * 2000; // 1-3 seconds
+      const delay = 500 + Math.random() * 1000; // 0.5-1.5 seconds
       setIsTyping(true);
 
       setTimeout(async () => {
@@ -254,24 +253,24 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
               <div key={i} className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground text-center">{item.question}</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {/* My answer - left bubble */}
+                  {/* Partner answer - left bubble */}
                   <div className="flex items-start gap-2">
                     <Avatar className="h-6 w-6 shrink-0 mt-0.5">
-                      <AvatarFallback className="text-[10px] bg-muted">Me</AvatarFallback>
+                      <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{partnerName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="rounded-lg bg-muted px-3 py-2 text-xs">
-                      <p className="font-medium text-muted-foreground mb-0.5">You</p>
-                      <p className="text-foreground">{item.myAnswer}</p>
+                      <p className="font-medium text-muted-foreground mb-0.5">{partnerName}</p>
+                      <p className="text-foreground">{item.partnerAnswer}</p>
                     </div>
                   </div>
-                  {/* Partner answer - right bubble */}
+                  {/* My answer - right bubble */}
                   <div className="flex items-start gap-2 justify-end">
                     <div className="rounded-lg bg-primary px-3 py-2 text-xs">
-                      <p className="font-medium text-primary-foreground/70 mb-0.5">{partnerName}</p>
-                      <p className="text-primary-foreground">{item.partnerAnswer}</p>
+                      <p className="font-medium text-primary-foreground/70 mb-0.5">You</p>
+                      <p className="text-primary-foreground">{item.myAnswer}</p>
                     </div>
                     <Avatar className="h-6 w-6 shrink-0 mt-0.5">
-                      <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{partnerName.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="text-[10px] bg-muted">Me</AvatarFallback>
                     </Avatar>
                   </div>
                 </div>
