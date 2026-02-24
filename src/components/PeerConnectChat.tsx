@@ -175,7 +175,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
     }
 
     setAddedAsPeer(true);
-    toast.success("Added as Trusted Peer! 🤝");
+    toast.success("Added as Friend! 🤝");
   };
 
   const handleEndSession = async () => {
