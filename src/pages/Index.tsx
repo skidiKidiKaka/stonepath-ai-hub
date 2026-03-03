@@ -1,18 +1,26 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Brain, Sparkles, Target } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      navigate("/dashboard");
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/dashboard");
+      } else {
+        // Clear any stale localStorage data
+        localStorage.removeItem("user");
+        setLoading(false);
+      }
+    });
   }, [navigate]);
+
+  if (loading) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-glow/10 to-secondary/10">
