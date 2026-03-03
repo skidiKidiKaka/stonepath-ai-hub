@@ -891,27 +891,51 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          birthdate: string | null
           created_at: string
           full_name: string | null
+          gender: string | null
+          grade: string | null
+          height_cm: number | null
           id: string
+          phone: string | null
+          school: string | null
           updated_at: string
           user_id: string
+          weight_kg: number | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          birthdate?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
+          grade?: string | null
+          height_cm?: number | null
           id?: string
+          phone?: string | null
+          school?: string | null
           updated_at?: string
           user_id: string
+          weight_kg?: number | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          birthdate?: string | null
           created_at?: string
           full_name?: string | null
+          gender?: string | null
+          grade?: string | null
+          height_cm?: number | null
           id?: string
+          phone?: string | null
+          school?: string | null
           updated_at?: string
           user_id?: string
+          weight_kg?: number | null
         }
         Relationships: []
       }

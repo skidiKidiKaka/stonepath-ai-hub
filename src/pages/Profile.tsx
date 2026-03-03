@@ -5,12 +5,26 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
+
+interface ProfileData {
+  full_name: string | null;
+  avatar_url: string | null;
+  gender: string | null;
+  birthdate: string | null;
+  height_cm: number | null;
+  weight_kg: number | null;
+  school: string | null;
+  grade: string | null;
+  bio: string | null;
+  phone: string | null;
+}
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -23,8 +37,18 @@ const Profile = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingName, setSavingName] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { theme, setTheme } = useTheme();
+
+  const [gender, setGender] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [heightCm, setHeightCm] = useState("");
+  const [weightKg, setWeightKg] = useState("");
+  const [school, setSchool] = useState("");
+  const [grade, setGrade] = useState("");
+  const [bio, setBio] = useState("");
+  const [phone, setPhone] = useState("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,13 +62,23 @@ const Profile = () => {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, full_name, gender, birthdate, height_cm, weight_kg, school, grade, bio, phone")
       .eq("user_id", userId)
       .single();
-    if (data?.avatar_url) {
-      setAvatarPath(data.avatar_url);
-      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.avatar_url);
-      setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+    if (data) {
+      if (data.avatar_url) {
+        setAvatarPath(data.avatar_url);
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.avatar_url);
+        setAvatarUrl(urlData.publicUrl + "?t=" + Date.now());
+      }
+      setGender((data as any).gender || "");
+      setBirthdate((data as any).birthdate || "");
+      setHeightCm((data as any).height_cm?.toString() || "");
+      setWeightKg((data as any).weight_kg?.toString() || "");
+      setSchool((data as any).school || "");
+      setGrade((data as any).grade || "");
+      setBio((data as any).bio || "");
+      setPhone((data as any).phone || "");
     }
   };
 
@@ -57,7 +91,6 @@ const Profile = () => {
     setUploadingAvatar(true);
     const path = `${user.id}/avatar`;
 
-    // Remove old avatar if exists
     if (avatarPath) {
       await supabase.storage.from("avatars").remove([avatarPath]);
     }
@@ -82,6 +115,25 @@ const Profile = () => {
     await supabase.from("profiles").update({ full_name: fullName.trim() }).eq("user_id", user.id);
     setSavingName(false);
     toast.success("Name updated!");
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    const updates: Record<string, any> = {
+      gender: gender || null,
+      birthdate: birthdate || null,
+      height_cm: heightCm ? parseFloat(heightCm) : null,
+      weight_kg: weightKg ? parseFloat(weightKg) : null,
+      school: school || null,
+      grade: grade || null,
+      bio: bio || null,
+      phone: phone || null,
+    };
+    const { error } = await supabase.from("profiles").update(updates).eq("user_id", user.id);
+    if (error) { toast.error("Failed to save profile"); setSavingProfile(false); return; }
+    setSavingProfile(false);
+    toast.success("Profile updated!");
   };
 
   const handleChangePassword = async () => {
@@ -160,6 +212,88 @@ const Profile = () => {
               <Input value={user.email || ""} disabled className="opacity-60" />
               <p className="text-xs text-muted-foreground">Email cannot be changed here</p>
             </div>
+          </div>
+        </Card>
+
+        {/* Extended Profile */}
+        <Card className="p-6">
+          <h2 className="text-lg font-semibold mb-4">About You</h2>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea id="bio" value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Tell us a little about yourself..." rows={3} maxLength={500} />
+              <p className="text-xs text-muted-foreground">{bio.length}/500</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <Select value={gender} onValueChange={setGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="non-binary">Non-binary</SelectItem>
+                    <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="birthdate">Birthdate</Label>
+                <Input id="birthdate" type="date" value={birthdate} onChange={(e) => setBirthdate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="heightCm">Height (cm)</Label>
+                <Input id="heightCm" type="number" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="170" min={50} max={300} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weightKg">Weight (kg)</Label>
+                <Input id="weightKg" type="number" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="65" min={10} max={500} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="school">School</Label>
+                <Input id="school" value={school} onChange={(e) => setSchool(e.target.value)} placeholder="Your school name" maxLength={200} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="grade">Grade / Year</Label>
+                <Select value={grade} onValueChange={setGrade}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select grade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="6th">6th Grade</SelectItem>
+                    <SelectItem value="7th">7th Grade</SelectItem>
+                    <SelectItem value="8th">8th Grade</SelectItem>
+                    <SelectItem value="9th">9th Grade (Freshman)</SelectItem>
+                    <SelectItem value="10th">10th Grade (Sophomore)</SelectItem>
+                    <SelectItem value="11th">11th Grade (Junior)</SelectItem>
+                    <SelectItem value="12th">12th Grade (Senior)</SelectItem>
+                    <SelectItem value="college-1">College - 1st Year</SelectItem>
+                    <SelectItem value="college-2">College - 2nd Year</SelectItem>
+                    <SelectItem value="college-3">College - 3rd Year</SelectItem>
+                    <SelectItem value="college-4">College - 4th Year</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 (555) 123-4567" maxLength={20} />
+            </div>
+
+            <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full">
+              {savingProfile ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Profile
+            </Button>
           </div>
         </Card>
 
