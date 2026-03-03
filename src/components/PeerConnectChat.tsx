@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Send, UserPlus, LogOut } from "lucide-react";
+import { Send, UserPlus, LogOut, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +7,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { getConnectionLabel } from "@/data/peerConnectQuestions";
 
 const DEMO_PEER_UUID = "00000000-0000-0000-0000-000000000001";
+const AI_BANTER_ID = "ai-wingman";
 
 interface AnswerSummaryItem {
   question: string;
@@ -22,6 +24,8 @@ interface PeerConnectChatProps {
   partnerName: string;
   onEnd: () => void;
   answerSummary?: AnswerSummaryItem[];
+  connectionScore?: number;
+  onResumeQuestions?: () => void;
 }
 
 interface ChatMessage {
@@ -29,14 +33,24 @@ interface ChatMessage {
   content: string;
   user_id: string;
   created_at: string;
+  isAiBanter?: boolean;
 }
 
-export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answerSummary }: PeerConnectChatProps) => {
+export const PeerConnectChat = ({
+  sessionId,
+  partnerId,
+  partnerName,
+  onEnd,
+  answerSummary,
+  connectionScore = 0,
+  onResumeQuestions,
+}: PeerConnectChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [addedAsPeer, setAddedAsPeer] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [messagesSinceLastBanter, setMessagesSinceLastBanter] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isDemo = partnerId === DEMO_PEER_UUID;
@@ -72,8 +86,6 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
           .maybeSingle();
         if (existing) setAddedAsPeer(true);
       }
-
-      // Allow adding Alex as friend too
     };
 
     init();
@@ -98,6 +110,37 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
     };
   }, [sessionId]);
 
+  const triggerAiBanter = async () => {
+    try {
+      const recentMsgs = messages.slice(-8).map((m) => ({
+        content: m.content,
+        isMe: m.user_id === currentUserId,
+      }));
+
+      const { data } = await supabase.functions.invoke("generate-peer-prompts", {
+        body: {
+          type: "ai-banter",
+          messages: recentMsgs,
+          answerSummary: answerSummary?.slice(0, 5),
+        },
+      });
+
+      if (data?.banter) {
+        const banterMsg: ChatMessage = {
+          id: `banter-${Date.now()}`,
+          content: data.banter,
+          user_id: AI_BANTER_ID,
+          created_at: new Date().toISOString(),
+          isAiBanter: true,
+        };
+        setMessages((prev) => [...prev, banterMsg]);
+        setTimeout(scrollToBottom, 100);
+      }
+    } catch (e) {
+      console.error("AI banter failed:", e);
+    }
+  };
+
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUserId) return;
@@ -116,14 +159,23 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
       return;
     }
 
+    // Track messages for AI banter
+    const newCount = messagesSinceLastBanter + 1;
+    setMessagesSinceLastBanter(newCount);
+
+    // Trigger banter every 4-5 messages
+    if (newCount >= 4 + Math.floor(Math.random() * 2)) {
+      setMessagesSinceLastBanter(0);
+      setTimeout(() => triggerAiBanter(), 2000);
+    }
+
     // Demo mode: get AI reply
     if (isDemo) {
-      const delay = 500 + Math.random() * 1000; // 0.5-1.5 seconds
+      const delay = 500 + Math.random() * 1000;
       setIsTyping(true);
 
       setTimeout(async () => {
         try {
-          // Build conversation context from current messages
           const currentMessages = await supabase
             .from("peer_connect_messages" as any)
             .select("*")
@@ -140,12 +192,12 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
               type: "demo-chat",
               messages: chatHistory,
               pillar: "general",
+              answerSummary: answerSummary?.slice(0, 5),
             },
           });
 
           const reply = data?.reply || "That's really cool! Tell me more 😊";
 
-          // Insert as demo peer
           await supabase.from("peer_connect_messages" as any).insert({
             session_id: sessionId,
             user_id: DEMO_PEER_UUID,
@@ -180,7 +232,11 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
   const handleEndSession = async () => {
     await supabase
       .from("peer_connect_sessions" as any)
-      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        connection_score: connectionScore,
+      })
       .eq("id", sessionId);
 
     if (currentUserId) {
@@ -191,6 +247,7 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
         .maybeSingle();
 
       const today = new Date().toISOString().split("T")[0];
+      const points = Math.max(15, connectionScore);
 
       if (!streak) {
         await supabase.from("pct_streaks").insert({
@@ -198,14 +255,14 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
           current_streak: 1,
           longest_streak: 1,
           total_sessions: 1,
-          total_points: 15,
+          total_points: points,
           last_session_date: today,
         });
       } else {
         const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
         let newStreak = streak.current_streak;
         if (streak.last_session_date === today) {
-          // noop on streak
+          // noop
         } else if (streak.last_session_date === yesterday) {
           newStreak += 1;
         } else {
@@ -216,23 +273,37 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
           current_streak: newStreak,
           longest_streak: Math.max(newStreak, streak.longest_streak),
           total_sessions: streak.total_sessions + 1,
-          total_points: streak.total_points + 15,
+          total_points: streak.total_points + points,
           last_session_date: today,
           updated_at: new Date().toISOString(),
         }).eq("user_id", currentUserId);
       }
     }
 
-    toast.success("Session complete! +15 points 🎉");
+    toast.success(`Session complete! +${Math.max(15, connectionScore)} points 🎉`);
     onEnd();
   };
+
+  const connectionLabel = getConnectionLabel(connectionScore);
 
   return (
     <Card className="flex flex-col h-[calc(100vh-12rem)] max-w-3xl mx-auto">
       <CardHeader className="border-b py-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">Chat with {partnerName}</CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-base">Chat with {partnerName}</CardTitle>
+            {connectionScore > 0 && (
+              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                {connectionLabel} · {connectionScore}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
+            {onResumeQuestions && (
+              <Button variant="outline" size="sm" onClick={onResumeQuestions}>
+                <ArrowLeft className="w-4 h-4 mr-1" /> Resume Questions
+              </Button>
+            )}
             {!addedAsPeer && (
               <Button variant="outline" size="sm" onClick={handleAddTrustedPeer}>
                 <UserPlus className="w-4 h-4 mr-1" /> Add Peer
@@ -253,7 +324,6 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
               <div key={i} className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground text-center">{item.question}</p>
                 <div className="grid grid-cols-2 gap-3">
-                  {/* Partner answer - left bubble */}
                   <div className="flex items-start gap-2">
                     <Avatar className="h-6 w-6 shrink-0 mt-0.5">
                       <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">{partnerName.charAt(0)}</AvatarFallback>
@@ -263,7 +333,6 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
                       <p className="text-foreground">{item.partnerAnswer}</p>
                     </div>
                   </div>
-                  {/* My answer - right bubble */}
                   <div className="flex items-start gap-2 justify-end">
                     <div className="rounded-lg bg-primary px-3 py-2 text-xs">
                       <p className="font-medium text-primary-foreground/70 mb-0.5">You</p>
@@ -282,36 +351,50 @@ export const PeerConnectChat = ({ sessionId, partnerId, partnerName, onEnd, answ
           💬 Chat unlocked! Continue the conversation naturally.
         </div>
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex gap-2 ${msg.user_id === currentUserId ? "flex-row-reverse" : ""}`}
-          >
-            <Avatar className="h-7 w-7">
-              <AvatarFallback className="text-xs">
-                {msg.user_id === currentUserId ? "Me" : partnerName.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
+        {messages.map((msg) => {
+          // AI Banter bubble
+          if (msg.isAiBanter || msg.user_id === AI_BANTER_ID) {
+            return (
+              <div key={msg.id} className="flex justify-center my-2">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/50 border border-accent text-xs text-muted-foreground max-w-[80%]">
+                  <Sparkles className="w-3 h-3 shrink-0 text-primary" />
+                  <span className="italic">{msg.content}</span>
+                </div>
+              </div>
+            );
+          }
+
+          return (
             <div
-              className={`flex flex-col gap-1 max-w-[70%] ${
-                msg.user_id === currentUserId ? "items-end" : ""
-              }`}
+              key={msg.id}
+              className={`flex gap-2 ${msg.user_id === currentUserId ? "flex-row-reverse" : ""}`}
             >
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="text-xs">
+                  {msg.user_id === currentUserId ? "Me" : partnerName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
               <div
-                className={`rounded-lg p-3 text-sm ${
-                  msg.user_id === currentUserId
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted"
+                className={`flex flex-col gap-1 max-w-[70%] ${
+                  msg.user_id === currentUserId ? "items-end" : ""
                 }`}
               >
-                {msg.content}
+                <div
+                  className={`rounded-lg p-3 text-sm ${
+                    msg.user_id === currentUserId
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  }`}
+                >
+                  {msg.content}
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
-              </span>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isTyping && (
           <div className="flex gap-2">

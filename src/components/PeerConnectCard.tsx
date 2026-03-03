@@ -4,10 +4,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { DEPTH_LABELS } from "@/data/peerConnectQuestions";
 
 interface MCQPrompt {
   question: string;
   options: string[];
+  depth?: number;
 }
 
 interface PeerConnectCardProps {
@@ -21,6 +24,13 @@ interface PeerConnectCardProps {
   waitingForPartner: boolean;
 }
 
+const depthColors: Record<number, string> = {
+  1: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+  2: "bg-amber-500/10 text-amber-600 border-amber-500/30",
+  3: "bg-rose-500/10 text-rose-600 border-rose-500/30",
+  4: "bg-purple-500/10 text-purple-600 border-purple-500/30",
+};
+
 export const PeerConnectCard = ({
   prompt,
   cardIndex,
@@ -32,13 +42,14 @@ export const PeerConnectCard = ({
   waitingForPartner,
 }: PeerConnectCardProps) => {
   const [selected, setSelected] = useState<string>("");
-  
+
   useEffect(() => {
     setSelected("");
   }, [cardIndex]);
 
   const hasSubmitted = myAnswer !== null;
   const isRevealed = myAnswer !== null && partnerAnswer !== null;
+  const depth = prompt.depth || 1;
 
   const handleSubmit = () => {
     const idx = parseInt(selected);
@@ -48,8 +59,11 @@ export const PeerConnectCard = ({
 
   return (
     <div className="space-y-4">
-      <div className="text-center text-sm text-muted-foreground mb-2">
-        Card {cardIndex + 1} of {totalCards}
+      <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+        <span>Card {cardIndex + 1} of {totalCards}</span>
+        <Badge variant="outline" className={depthColors[depth]}>
+          {DEPTH_LABELS[depth] || "Surface"}
+        </Badge>
       </div>
 
       <Card className="overflow-hidden">
