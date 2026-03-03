@@ -89,7 +89,11 @@ export const PeerConnectChat = ({
     };
 
     init();
-    fetchMessages();
+    fetchMessages().then(() => {
+      if (isDemo) {
+        triggerAlexFirstMessage();
+      }
+    });
 
     const channel = supabase
       .channel(`peer-chat-${sessionId}`)
@@ -109,6 +113,45 @@ export const PeerConnectChat = ({
       supabase.removeChannel(channel);
     };
   }, [sessionId]);
+
+  const triggerAlexFirstMessage = async () => {
+    const { data: existing } = await supabase
+      .from("peer_connect_messages" as any)
+      .select("id")
+      .eq("session_id", sessionId)
+      .limit(1);
+    if (existing && existing.length > 0) return;
+
+    setIsTyping(true);
+    setTimeout(async () => {
+      try {
+        const { data } = await supabase.functions.invoke("generate-peer-prompts", {
+          body: {
+            type: "demo-chat",
+            messages: [],
+            pillar: "general",
+            answerSummary: answerSummary?.slice(0, 5),
+            isFirstMessage: true,
+          },
+        });
+        const reply = data?.reply || "Hey! That was fun 😄 What surprised you most about our answers?";
+        await supabase.from("peer_connect_messages" as any).insert({
+          session_id: sessionId,
+          user_id: DEMO_PEER_UUID,
+          content: reply,
+        });
+      } catch (e) {
+        console.error("Alex first message failed:", e);
+        await supabase.from("peer_connect_messages" as any).insert({
+          session_id: sessionId,
+          user_id: DEMO_PEER_UUID,
+          content: "Hey! That was really fun 😄 What surprised you most about our answers?",
+        });
+      } finally {
+        setIsTyping(false);
+      }
+    }, 800 + Math.random() * 1200);
+  };
 
   const triggerAiBanter = async () => {
     try {
