@@ -10,7 +10,6 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -35,7 +34,6 @@ serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub;
-    console.log(`generate-peer-prompts request from user: ${userId}`);
 
     const body = await req.json();
     const { type } = body;
@@ -43,16 +41,9 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Use service role for cache writes
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     // ======= DEMO ANSWER =======
     if (type === "demo-answer") {
       const { question, options } = body;
-      // Input validation
       if (typeof question !== 'string' || question.length > 500) {
         return new Response(JSON.stringify({ error: 'Invalid question' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -102,8 +93,7 @@ serve(async (req) => {
 
     // ======= DEMO CHAT =======
     if (type === "demo-chat") {
-      const { messages, pillar } = body;
-      // Input validation
+      const { messages, pillar, answerSummary } = body;
       if (Array.isArray(messages) && messages.length > 50) {
         return new Response(JSON.stringify({ error: 'Too many messages' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -114,6 +104,12 @@ serve(async (req) => {
       const conversationContext = recentMessages
         .map((m: any) => `${m.isMe ? "User" : "Alex"}: ${String(m.content).substring(0, 500)}`)
         .join("\n");
+
+      let answerContext = "";
+      if (answerSummary && Array.isArray(answerSummary)) {
+        answerContext = "\n\nHere are your shared icebreaker answers:\n" +
+          answerSummary.map((a: any) => `Q: ${a.question}\nYou: ${a.myAnswer} | Alex: ${a.partnerAnswer}`).join("\n");
+      }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -126,7 +122,7 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are "Alex", a friendly, empathetic high school student chatting with a peer about ${pillar || "life"}. You just finished answering icebreaker questions together. Be natural, warm, use casual teen-friendly language (but not cringey). Keep responses to 1-3 sentences. Ask follow-up questions sometimes. Never reveal you're AI. Return just the message text, no quotes or formatting.`,
+              content: `You are "Alex", a friendly, empathetic high school student chatting with a peer about ${pillar || "life"}. You just finished answering deep icebreaker questions together and you know each other's answers. Be natural, warm, use casual teen-friendly language (but not cringey). Keep responses to 1-3 sentences. Ask follow-up questions sometimes. Reference the icebreaker answers naturally when relevant. Never reveal you're AI. Return just the message text, no quotes or formatting.${answerContext}`,
             },
             {
               role: "user",
@@ -147,16 +143,24 @@ serve(async (req) => {
       });
     }
 
-    // ======= CONNECTION SPARK =======
-    if (type === "spark") {
-      const { question, optionA, optionB } = body;
-      // Input validation
-      if (typeof question !== 'string' || question.length > 500 ||
-          typeof optionA !== 'string' || optionA.length > 500 ||
-          typeof optionB !== 'string' || optionB.length > 500) {
-        return new Response(JSON.stringify({ error: 'Invalid input' }), {
+    // ======= AI BANTER =======
+    if (type === "ai-banter") {
+      const { messages, answerSummary } = body;
+      if (Array.isArray(messages) && messages.length > 50) {
+        return new Response(JSON.stringify({ error: 'Too many messages' }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+
+      const recentMessages = (messages || []).slice(-6);
+      const chatContext = recentMessages
+        .map((m: any) => `${m.isMe ? "Person A" : "Person B"}: ${String(m.content).substring(0, 300)}`)
+        .join("\n");
+
+      let answerContext = "";
+      if (answerSummary && Array.isArray(answerSummary)) {
+        answerContext = "\nTheir icebreaker answers:\n" +
+          answerSummary.map((a: any) => `Q: ${a.question} → A: ${a.myAnswer}, B: ${a.partnerAnswer}`).join("\n");
       }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -170,7 +174,50 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `You are a warm, supportive conversation facilitator for teens. Given a question and two people's answers, write a single warm sentence that highlights what they have in common or what's interesting about their different perspectives. Keep it brief, positive, and encouraging. Return just the sentence, no quotes.`,
+              content: `You are a witty AI wingman observing two high school students chatting after answering deep icebreaker questions together. Drop a SHORT, funny, relevant one-liner comment about their conversation or their icebreaker answers. Be playful, not cringe. Max 15 words. Reference what they're talking about or their earlier answers. No quotes, no emojis except maybe one. Just the comment.`,
+            },
+            {
+              role: "user",
+              content: `Recent chat:\n${chatContext}${answerContext}\n\nDrop a witty one-liner:`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) throw new Error("AI gateway error");
+      const data = await response.json();
+      const banter = data.choices?.[0]?.message?.content?.trim() || "";
+
+      return new Response(JSON.stringify({ banter }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ======= CONNECTION SPARK =======
+    if (type === "spark") {
+      const { question, optionA, optionB, depth } = body;
+      if (typeof question !== 'string' || question.length > 500 ||
+          typeof optionA !== 'string' || optionA.length > 500 ||
+          typeof optionB !== 'string' || optionB.length > 500) {
+        return new Response(JSON.stringify({ error: 'Invalid input' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const depthLabel = depth === 1 ? "surface" : depth === 2 ? "personal" : depth === 3 ? "deep" : "raw/unhinged";
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "system",
+              content: `You are a warm, supportive conversation facilitator for teens. Given a ${depthLabel}-level question and two people's answers, write a single warm sentence that highlights what they have in common or what's interesting about their different perspectives. Match the emotional depth of the question — be more profound for deeper questions. Keep it brief, positive, and encouraging. Return just the sentence, no quotes.`,
             },
             {
               role: "user",
@@ -189,83 +236,8 @@ serve(async (req) => {
       });
     }
 
-    // ======= GENERATE MCQ PROMPTS =======
-    const { pillar } = body;
-    // Input validation
-    if (typeof pillar !== 'string' || pillar.length > 100) {
-      return new Response(JSON.stringify({ error: 'Invalid pillar' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const cacheKey = `peer_${pillar}`;
-    const { data: cached } = await supabase
-      .from("pct_prompt_cache")
-      .select("prompts")
-      .eq("pillar", cacheKey)
-      .eq("topic", "icebreakers")
-      .maybeSingle();
-
-    if (cached) {
-      return new Response(JSON.stringify({ prompts: cached.prompts }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: `You are a creative icebreaker designer for high school students. Generate exactly 3 personality/preference MCQ questions related to "${pillar}". These are NOT knowledge questions — they are personal preference questions with no right or wrong answer. Each question should have exactly 4 options.
-
-The questions should:
-- Be fun, relatable, and age-appropriate (14-18)
-- Help two strangers discover shared perspectives
-- Range from lighthearted to mildly introspective
-- Feel like a personality quiz, not a test
-
-Return valid JSON only: {"prompts": [{"question": "...", "options": ["...", "...", "...", "..."]}]}`,
-          },
-          {
-            role: "user",
-            content: `Generate 3 icebreaker MCQ questions for the "${pillar}" pillar.`,
-          },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-
-    let parsed;
-    try {
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, content];
-      parsed = JSON.parse(jsonMatch[1].trim());
-    } catch {
-      parsed = JSON.parse(content);
-    }
-
-    if (parsed.prompts) {
-      await supabase.from("pct_prompt_cache").upsert(
-        { pillar: cacheKey, topic: "icebreakers", prompts: parsed.prompts },
-        { onConflict: "pillar,topic" }
-      );
-    }
-
-    return new Response(JSON.stringify(parsed), {
+    return new Response(JSON.stringify({ error: "Unknown type" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
