@@ -233,7 +233,7 @@ const TaskPlanner = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-glow/5 to-secondary/5">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 safe-top">
         <div className="container mx-auto px-4 py-4">
           <Button variant="ghost" onClick={() => navigate("/dashboard")} className="mb-2">
             <ArrowLeft className="mr-2 h-4 w-4" />

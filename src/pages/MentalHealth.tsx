@@ -140,7 +140,7 @@ const MentalHealth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-purple-500/5 to-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 safe-top">
         <div className="container mx-auto px-4 py-4">
           <Button variant="ghost" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
