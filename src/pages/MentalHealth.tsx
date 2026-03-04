@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, Smile, Moon, ChevronDown, Play, Pause, Sparkles } from "lucide-react";
+import { ArrowLeft, Heart, Smile, Moon, ChevronDown, Play, Pause, Sparkles, ExternalLink, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -352,6 +352,29 @@ const MentalHealth = () => {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-purple-500" />
+                <CardTitle>Student Success Webinars</CardTitle>
+              </div>
+              <CardDescription>Free webinars on study skills, stress management, and more</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Access free success skills webinars from JA Campus covering topics like time management, goal setting, mindfulness, and building resilience.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => window.open("https://www.jacampus.org/success-skills-webinars/", "_blank", "noopener,noreferrer")}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Browse Webinars
+              </Button>
             </CardContent>
           </Card>
         </div>
