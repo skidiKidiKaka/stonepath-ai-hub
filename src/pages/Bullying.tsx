@@ -218,7 +218,7 @@ const Bullying = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-cyan-500 to-cyan-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold mt-4 bg-gradient-to-r from-cyan-500 to-cyan-600 bg-clip-text text-transparent">
             Peer Support
           </h1>
         </div>

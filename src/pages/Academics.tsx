@@ -77,14 +77,14 @@ const Academics = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-blue-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <Button variant="ghost" onClick={() => navigate("/dashboard")} className="self-start">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
             <AssignmentForm onAssignmentAdded={fetchAssignments} />
           </div>
-          <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold mt-4 bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
             Academic Planner
           </h1>
         </div>
