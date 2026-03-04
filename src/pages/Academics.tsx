@@ -9,6 +9,7 @@ import { AssignmentList } from "@/components/AssignmentList";
 import { AssignmentCalendar } from "@/components/AssignmentCalendar";
 import { PomodoroTimer } from "@/components/PomodoroTimer";
 import { AiNoteGenerator } from "@/components/AiNoteGenerator";
+import { AcademicResourceFinder } from "@/components/AcademicResourceFinder";
 
 interface Assignment {
   id: string;
@@ -94,7 +95,10 @@ const Academics = () => {
           <div className="text-center py-8">Loading assignments...</div>
         ) : (
           <div className="space-y-6">
-            <AiNoteGenerator />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <AiNoteGenerator />
+              <AcademicResourceFinder />
+            </div>
             <div className="grid gap-6 lg:grid-cols-2">
               <div className="space-y-6">
                 <AssignmentList

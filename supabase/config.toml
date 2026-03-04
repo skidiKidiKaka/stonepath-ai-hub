@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.generate-peer-prompts]
 verify_jwt = false
+
+[functions.academic-resource-finder]
+verify_jwt = false
