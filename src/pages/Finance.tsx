@@ -648,14 +648,13 @@ const Finance = () => {
               <CardDescription>Monthly Budget</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex justify-between items-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  ${budgetSummary.budget > 0 ? budgetSummary.budget.toFixed(2) : '--'}
-                </div>
-                <Dialog open={isBudgetOpen} onOpenChange={setIsBudgetOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline">Set</Button>
-                  </DialogTrigger>
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 mb-2">
+                ${budgetSummary.budget > 0 ? budgetSummary.budget.toFixed(2) : '--'}
+              </div>
+              <Dialog open={isBudgetOpen} onOpenChange={setIsBudgetOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline" className="w-full min-h-[44px]">Set Budget</Button>
+                </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Set Monthly Budget</DialogTitle>
@@ -678,7 +677,6 @@ const Finance = () => {
                     </div>
                   </DialogContent>
                 </Dialog>
-              </div>
             </CardContent>
           </Card>
           <Card>
