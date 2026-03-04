@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock } from "lucide-react";
+import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock, Sparkles, Lightbulb, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
@@ -43,6 +43,12 @@ const Finance = () => {
   const [isBudgetOpen, setIsBudgetOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [monthlyBudget, setMonthlyBudget] = useState("");
+  const [spendingInsights, setSpendingInsights] = useState<string[]>([]);
+  const [budgetSuggestions, setBudgetSuggestions] = useState<string[]>([]);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [insightsGenerated, setInsightsGenerated] = useState(false);
+  const [suggestionsGenerated, setSuggestionsGenerated] = useState(false);
 
   // Transaction form state
   const [transAmount, setTransAmount] = useState("");
@@ -523,6 +529,96 @@ const Finance = () => {
     }
   };
 
+  const fetchSpendingInsights = useCallback(async () => {
+    if (!user?.id || transactions.length === 0) return;
+    setInsightsLoading(true);
+    try {
+      const thisMonth = new Date().getMonth();
+      const thisYear = new Date().getFullYear();
+      const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+      const lastYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+
+      const currentMonthTx = transactions.filter(t => {
+        const d = new Date(t.transaction_date);
+        return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+      });
+      const lastMonthTx = transactions.filter(t => {
+        const d = new Date(t.transaction_date);
+        return d.getMonth() === lastMonth && d.getFullYear() === lastYear;
+      });
+
+      const curIncome = currentMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount as any), 0);
+      const curExpenses = currentMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount as any), 0);
+      const prevIncome = lastMonthTx.filter(t => t.type === 'income').reduce((s, t) => s + parseFloat(t.amount as any), 0);
+      const prevExpenses = lastMonthTx.filter(t => t.type === 'expense').reduce((s, t) => s + parseFloat(t.amount as any), 0);
+
+      const categories: Record<string, number> = {};
+      currentMonthTx.filter(t => t.type === 'expense').forEach(t => {
+        const cat = t.description.split(' ')[0] || 'Other';
+        categories[cat] = (categories[cat] || 0) + parseFloat(t.amount as any);
+      });
+
+      const { data, error } = await supabase.functions.invoke('finance-insights', {
+        body: {
+          type: 'monthly-insights',
+          financialData: {
+            currentMonth: { income: curIncome, expenses: curExpenses, categories },
+            previousMonth: { income: prevIncome, expenses: prevExpenses },
+            budget: budgetSummary.budget,
+            savingsRate: curIncome > 0 ? ((curIncome - curExpenses) / curIncome * 100).toFixed(1) : 0,
+          }
+        }
+      });
+
+      if (error) throw error;
+      setSpendingInsights(data.insights || []);
+      setInsightsGenerated(true);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to generate spending insights.", variant: "destructive" });
+    } finally {
+      setInsightsLoading(false);
+    }
+  }, [user?.id, transactions, budgetSummary.budget]);
+
+  const fetchBudgetSuggestions = useCallback(async () => {
+    if (!user?.id || budgetSummary.budget === 0) return;
+    setSuggestionsLoading(true);
+    try {
+      const categories: Record<string, number> = {};
+      const thisMonth = new Date().getMonth();
+      const thisYear = new Date().getFullYear();
+      transactions.filter(t => {
+        const d = new Date(t.transaction_date);
+        return t.type === 'expense' && d.getMonth() === thisMonth && d.getFullYear() === thisYear;
+      }).forEach(t => {
+        const cat = t.description.split(' ')[0] || 'Other';
+        categories[cat] = (categories[cat] || 0) + parseFloat(t.amount as any);
+      });
+
+      const { data, error } = await supabase.functions.invoke('finance-insights', {
+        body: {
+          type: 'budget-suggestions',
+          financialData: {
+            budget: budgetSummary.budget,
+            totalExpenses: budgetSummary.expenses,
+            remaining: budgetSummary.remaining,
+            income: budgetSummary.income,
+            categories,
+            savingsGoals: savingsGoals.map(g => ({ name: g.goal_name, target: g.target_amount, current: g.current_amount })),
+          }
+        }
+      });
+
+      if (error) throw error;
+      setBudgetSuggestions(data.insights || []);
+      setSuggestionsGenerated(true);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to generate budget suggestions.", variant: "destructive" });
+    } finally {
+      setSuggestionsLoading(false);
+    }
+  }, [user?.id, transactions, budgetSummary, savingsGoals]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-emerald-500/5 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
@@ -679,6 +775,99 @@ const Finance = () => {
                     <div className="h-[250px] flex items-center justify-center text-muted-foreground">
                       No expense data to display
                     </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* AI Insights Section */}
+            <div className="grid gap-6 md:grid-cols-2">
+              {/* Monthly Spending Insights */}
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Sparkles className="w-5 h-5 text-amber-500" />
+                        Monthly Spending Insights
+                      </CardTitle>
+                      <CardDescription>AI-generated analysis of your spending</CardDescription>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchSpendingInsights}
+                      disabled={insightsLoading || transactions.length === 0}
+                    >
+                      {insightsLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>{insightsGenerated ? 'Refresh' : 'Generate'}</>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {spendingInsights.length > 0 ? (
+                    <ul className="space-y-2">
+                      {spendingInsights.map((insight, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <span className="text-amber-500 mt-0.5">•</span>
+                          <span>{insight}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {transactions.length === 0
+                        ? 'Add some transactions first to get insights.'
+                        : 'Click "Generate" to get AI-powered spending insights.'}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Smart Budget Suggestions */}
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <Lightbulb className="w-5 h-5 text-blue-500" />
+                        Smart Budget Suggestions
+                      </CardTitle>
+                      <CardDescription>Personalized tips to stay on track</CardDescription>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={fetchBudgetSuggestions}
+                      disabled={suggestionsLoading || budgetSummary.budget === 0}
+                    >
+                      {suggestionsLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>{suggestionsGenerated ? 'Refresh' : 'Generate'}</>
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {budgetSuggestions.length > 0 ? (
+                    <ul className="space-y-2">
+                      {budgetSuggestions.map((suggestion, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <span className="text-blue-500 mt-0.5">•</span>
+                          <span>{suggestion}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {budgetSummary.budget === 0
+                        ? 'Set a monthly budget first to get suggestions.'
+                        : 'Click "Generate" for AI-powered budget advice.'}
+                    </p>
                   )}
                 </CardContent>
               </Card>

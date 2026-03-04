@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.academic-resource-finder]
 verify_jwt = false
+
+[functions.finance-insights]
+verify_jwt = false
