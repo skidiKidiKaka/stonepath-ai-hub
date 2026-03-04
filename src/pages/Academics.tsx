@@ -75,7 +75,7 @@ const Academics = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-blue-500/5 to-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 safe-top">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <Button variant="ghost" onClick={() => navigate("/dashboard")} className="self-start">

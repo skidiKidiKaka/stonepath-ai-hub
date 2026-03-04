@@ -128,11 +128,8 @@ All colors MUST be HSL.
   }
 
   html {
-    /* Safe area insets for iPhone notch/dynamic island, Android cutouts */
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    /* Capacitor: don't apply safe-area padding on html to avoid double-padding.
+       Instead, apply .safe-top / .safe-bottom on individual fixed/sticky elements. */
   }
 
   body {
@@ -141,12 +138,27 @@ All colors MUST be HSL.
   }
 }
 
-/* Ensure fixed/sticky elements respect safe areas */
+/* Capacitor / notch-safe utilities */
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
 
 .safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Full page wrapper that respects all safe areas */
+.safe-area-page {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
