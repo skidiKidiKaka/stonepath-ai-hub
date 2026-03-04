@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock, Sparkles, Lightbulb, RefreshCw } from "lucide-react";
+import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock, Sparkles, Lightbulb, RefreshCw, ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -872,6 +872,39 @@ const Finance = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Financial Resources */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BookOpen className="w-5 h-5 text-emerald-500" />
+                  Financial Literacy Resources
+                </CardTitle>
+                <CardDescription>Trusted tools and guides to build your money skills</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { name: "Money and Youth", url: "https://moneyandyouth.com/", desc: "Interactive financial literacy program for young Canadians" },
+                    { name: "Get Smarter About Money – Scams", url: "https://www.getsmarteraboutmoney.ca/scams/", desc: "Learn to identify and avoid financial scams" },
+                    { name: "Investopedia – Budgeting Basics", url: "https://www.investopedia.com/budgeting-4689726", desc: "Comprehensive guide to budgeting fundamentals" },
+                    { name: "Khan Academy – Personal Finance", url: "https://www.khanacademy.org/college-careers-more/personal-finance", desc: "Free courses on budgeting, saving, and investing" },
+                  ].map((resource) => (
+                    <button
+                      key={resource.url}
+                      onClick={() => window.open(resource.url, '_blank', 'noopener,noreferrer')}
+                      className="flex items-start gap-3 p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors text-left"
+                    >
+                      <ExternalLink className="w-4 h-4 mt-0.5 text-emerald-500 shrink-0" />
+                      <div>
+                        <div className="font-medium text-sm">{resource.name}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">{resource.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Transactions</h2>
