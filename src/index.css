@@ -127,7 +127,33 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html {
+    /* Safe area insets for iPhone notch/dynamic island, Android cutouts */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
   body {
     @apply bg-background text-foreground;
+    min-height: 100dvh;
+  }
+}
+
+/* Ensure fixed/sticky elements respect safe areas */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Touch targets - minimum 44px for iOS, 48dp for Android */
+@layer utilities {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

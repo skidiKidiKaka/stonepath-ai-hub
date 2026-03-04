@@ -122,7 +122,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-glow/5 to-secondary/5">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 safe-top">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
@@ -258,7 +258,8 @@ const Dashboard = () => {
       <Button
         variant="gradient"
         size="icon"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl hover:scale-110 transition-transform"
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-xl hover:scale-110 transition-transform safe-bottom"
+        style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))', right: 'max(1.5rem, calc(env(safe-area-inset-right) + 0.5rem))' }}
         onClick={() => setAiChatOpen(true)}
       >
         <MessageSquare className="w-6 h-6" />
