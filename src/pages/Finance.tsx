@@ -183,8 +183,15 @@ const Finance = () => {
 
     const budget = budgetData?.monthly_budget ? parseFloat(budgetData.monthly_budget as any) : 0;
     const remaining = budget > 0 ? budget - expenses : 0;
+    const usagePercent = budget > 0 ? (expenses / budget) * 100 : 0;
 
-    return { income, expenses, balance: income - expenses, budget, remaining };
+    let healthStatus: 'on-track' | 'watch' | 'over' = 'on-track';
+    if (budget > 0) {
+      if (expenses > budget) healthStatus = 'over';
+      else if (usagePercent >= 75) healthStatus = 'watch';
+    }
+
+    return { income, expenses, balance: income - expenses, budget, remaining, healthStatus, usagePercent };
   }, [transactions, budgetData]);
 
   // Calculate pending allowances
@@ -635,7 +642,7 @@ const Finance = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Budget Overview */}
-        <div className="grid gap-4 md:grid-cols-4 mb-6">
+        <div className="grid gap-4 md:grid-cols-5 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Monthly Budget</CardDescription>
@@ -703,6 +710,27 @@ const Finance = () => {
               <div className={`text-2xl font-bold ${budgetSummary.balance >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 ${budgetSummary.balance.toFixed(2)}
               </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Financial Health</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {budgetSummary.budget > 0 ? (
+                <div>
+                  <div className="text-2xl font-bold flex items-center gap-2">
+                    {budgetSummary.healthStatus === 'on-track' && <><span className="text-emerald-500">🟢</span><span className="text-emerald-600 text-base">On Track</span></>}
+                    {budgetSummary.healthStatus === 'watch' && <><span className="text-amber-500">🟡</span><span className="text-amber-600 text-base">Watch Spending</span></>}
+                    {budgetSummary.healthStatus === 'over' && <><span className="text-red-500">🔴</span><span className="text-red-600 text-base">Over Budget</span></>}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {budgetSummary.usagePercent.toFixed(0)}% of budget used
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Set a budget</div>
+              )}
             </CardContent>
           </Card>
         </div>
