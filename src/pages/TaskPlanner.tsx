@@ -240,7 +240,7 @@ const TaskPlanner = () => {
             Back to Dashboard
           </Button>
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
               Task Planner
             </h1>
             <p className="text-muted-foreground mt-1">Stay organized and track your progress</p>

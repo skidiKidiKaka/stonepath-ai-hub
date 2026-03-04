@@ -634,7 +634,7 @@ const Finance = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold mt-4 bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold mt-4 bg-gradient-to-r from-emerald-500 to-emerald-600 bg-clip-text text-transparent">
             Finance Hub
           </h1>
         </div>
@@ -642,7 +642,7 @@ const Finance = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Budget Overview */}
-        <div className="grid gap-4 md:grid-cols-5 mb-6">
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mb-6">
           <Card>
             <CardHeader className="pb-2">
               <CardDescription>Monthly Budget</CardDescription>
@@ -712,7 +712,7 @@ const Finance = () => {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="col-span-2 md:col-span-1">
             <CardHeader className="pb-2">
               <CardDescription>Financial Health</CardDescription>
             </CardHeader>
@@ -738,7 +738,7 @@ const Finance = () => {
         <Tabs defaultValue="budget" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="budget">Budget</TabsTrigger>
-            <TabsTrigger value="chores">Chores & Allowance</TabsTrigger>
+            <TabsTrigger value="chores" className="text-xs sm:text-sm">Chores & Allowance</TabsTrigger>
             <TabsTrigger value="goals">Savings Goals</TabsTrigger>
           </TabsList>
 
@@ -934,11 +934,11 @@ const Finance = () => {
               </CardContent>
             </Card>
 
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Transactions</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold">Transactions</h2>
               <Dialog open={isTransactionOpen} onOpenChange={setIsTransactionOpen}>
                 <DialogTrigger asChild>
-                  <Button>
+                  <Button size="sm" className="self-start sm:self-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Transaction
                   </Button>
@@ -1047,8 +1047,8 @@ const Finance = () => {
               </Card>
             )}
 
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Active Chores</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold">Active Chores</h2>
               <Dialog open={isChoreOpen} onOpenChange={setIsChoreOpen}>
                 <DialogTrigger asChild>
                   <Button>
@@ -1163,8 +1163,8 @@ const Finance = () => {
 
           {/* Savings Goals Tab */}
           <TabsContent value="goals" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold">Savings Goals</h2>
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold">Savings Goals</h2>
               <Dialog open={isGoalOpen} onOpenChange={setIsGoalOpen}>
                 <DialogTrigger asChild>
                   <Button>
