@@ -651,12 +651,12 @@ const Career = () => {
                   </div>
                 </div>
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-2 sm:gap-3">
                 {quizQuestions[currentQuestion].options.map((option, index) => (
                   <Button
                     key={index}
                     variant="outline"
-                    className="w-full justify-start text-left h-auto py-4"
+                    className="w-full justify-start text-left h-auto py-3 px-3 sm:py-4 sm:px-4 whitespace-normal leading-snug text-sm sm:text-base min-h-[44px]"
                     onClick={() => handleAnswer(option)}
                   >
                     {option}
