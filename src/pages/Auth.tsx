@@ -67,9 +67,11 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user) {
-        toast.success("Account created successfully!");
+      if (data.session) {
+        toast.success("Account created successfully! Welcome!");
         navigate("/dashboard");
+      } else if (data.user) {
+        toast.success("Account created! Please check your email to verify.");
       }
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
