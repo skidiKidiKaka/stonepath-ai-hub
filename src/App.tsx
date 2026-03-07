@@ -21,6 +21,7 @@ import Finance from "./pages/Finance";
 import Relationships from "./pages/Relationships";
 import Bullying from "./pages/Bullying";
 import HeadspaceHangout from "./pages/HeadspaceHangout";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tasks" element={<TaskPlanner />} />
             <Route path="/profile" element={<Profile />} />
