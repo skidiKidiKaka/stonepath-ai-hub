@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock, Sparkles, Lightbulb, RefreshCw, ExternalLink, BookOpen } from "lucide-react";
+import { ArrowLeft, DollarSign, PiggyBank, TrendingUp, Wallet, Plus, CheckCircle, Circle, Trash2, Clock, BarChart3, Target, RefreshCw, ExternalLink, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -814,7 +814,7 @@ const Finance = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Sparkles className="w-5 h-5 text-amber-500" />
+                        <BarChart3 className="w-5 h-5 text-amber-500" />
                         Monthly Spending Insights
                       </CardTitle>
                       <CardDescription>AI-generated analysis of your spending</CardDescription>
@@ -859,7 +859,7 @@ const Finance = () => {
                   <div className="flex justify-between items-center">
                     <div>
                       <CardTitle className="flex items-center gap-2 text-lg">
-                        <Lightbulb className="w-5 h-5 text-blue-500" />
+                        <Target className="w-5 h-5 text-blue-500" />
                         Smart Budget Suggestions
                       </CardTitle>
                       <CardDescription>Personalized tips to stay on track</CardDescription>
