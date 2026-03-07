@@ -382,7 +382,7 @@ export const GroupList = ({ onGroupSelect }: GroupListProps) => {
                     className="flex items-start gap-3 flex-1 cursor-pointer" 
                     onClick={() => handleJoinGroup(group.id)}
                   >
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                    <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
                       {getCategoryIcon(group.category)}
                     </div>
                     <div className="space-y-1 flex-1">
