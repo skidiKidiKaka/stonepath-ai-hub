@@ -10,7 +10,7 @@ export const PomodoroTimer = () => {
   const [isActive, setIsActive] = useState(false);
   const [mode, setMode] = useState<"focus" | "break">("focus");
   const { toast } = useToast();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (isActive) {
