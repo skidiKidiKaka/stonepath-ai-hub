@@ -22,6 +22,7 @@ import Relationships from "./pages/Relationships";
 import Bullying from "./pages/Bullying";
 import HeadspaceHangout from "./pages/HeadspaceHangout";
 import ResetPassword from "./pages/ResetPassword";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
