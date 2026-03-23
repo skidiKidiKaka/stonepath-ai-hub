@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      announcements: {
+        Row: {
+          author_id: string
+          content: string
+          created_at: string | null
+          id: string
+          is_pinned: boolean | null
+          school: string
+          target_roles: string[] | null
+          title: string
+        }
+        Insert: {
+          author_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          school: string
+          target_roles?: string[] | null
+          title: string
+        }
+        Update: {
+          author_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_pinned?: boolean | null
+          school?: string
+          target_roles?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           created_at: string
@@ -627,6 +660,66 @@ export type Database = {
         }
         Relationships: []
       }
+      panel_messages: {
+        Row: {
+          content: string
+          context: string | null
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          recipient_id: string
+          sender_id: string
+          subject: string | null
+        }
+        Insert: {
+          content: string
+          context?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id: string
+          sender_id: string
+          subject?: string | null
+        }
+        Update: {
+          content?: string
+          context?: string | null
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id?: string
+          sender_id?: string
+          subject?: string | null
+        }
+        Relationships: []
+      }
+      parent_student_links: {
+        Row: {
+          created_at: string | null
+          id: string
+          link_code: string | null
+          parent_id: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link_code?: string | null
+          parent_id: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link_code?: string | null
+          parent_id?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: []
+      }
       pct_prompt_cache: {
         Row: {
           created_at: string | null
@@ -900,6 +993,7 @@ export type Database = {
           height_cm: number | null
           id: string
           phone: string | null
+          role: string
           school: string | null
           updated_at: string
           user_id: string
@@ -916,6 +1010,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           phone?: string | null
+          role?: string
           school?: string | null
           updated_at?: string
           user_id: string
@@ -932,6 +1027,7 @@ export type Database = {
           height_cm?: number | null
           id?: string
           phone?: string | null
+          role?: string
           school?: string | null
           updated_at?: string
           user_id?: string
@@ -1129,8 +1225,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_linked_parent: {
+        Args: { _parent_id: string; _student_id: string }
         Returns: boolean
       }
     }
