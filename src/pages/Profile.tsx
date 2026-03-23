@@ -13,6 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
 
+import { useUserRole } from "@/hooks/useUserRole";
+import { Badge } from "@/components/ui/badge";
+import { Copy, Link2 } from "lucide-react";
+
 interface ProfileData {
   full_name: string | null;
   avatar_url: string | null;
@@ -24,6 +28,7 @@ interface ProfileData {
   grade: string | null;
   bio: string | null;
   phone: string | null;
+  role: string | null;
 }
 
 const Profile = () => {
@@ -40,6 +45,9 @@ const Profile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { role } = useUserRole();
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   const [gender, setGender] = useState("");
   const [birthdate, setBirthdate] = useState("");
@@ -314,6 +322,73 @@ const Profile = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Parent Link Code - Students Only */}
+        {role === "student" && (
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold mb-2 flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Parent Link Code
+            </h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Generate a code for your parent to link their account and view your progress.
+            </p>
+            {linkCode ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-lg px-4 py-3 font-mono text-lg tracking-widest text-center font-bold">
+                  {linkCode}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(linkCode);
+                    toast.success("Code copied!");
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={async () => {
+                  if (!user) return;
+                  setGeneratingCode(true);
+                  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                  const { error } = await supabase.from("parent_student_links").insert({
+                    student_id: user.id,
+                    parent_id: user.id, // placeholder, parent will update
+                    link_code: code,
+                    status: "pending",
+                  });
+                  if (error) {
+                    if (error.code === "23505") {
+                      // Already has a code, fetch it
+                      const { data } = await supabase
+                        .from("parent_student_links")
+                        .select("link_code")
+                        .eq("student_id", user.id)
+                        .single();
+                      if (data?.link_code) setLinkCode(data.link_code);
+                      else toast.error("Failed to generate code");
+                    } else {
+                      toast.error("Failed to generate code");
+                    }
+                  } else {
+                    setLinkCode(code);
+                    toast.success("Link code generated!");
+                  }
+                  setGeneratingCode(false);
+                }}
+                disabled={generatingCode}
+                className="w-full"
+              >
+                {generatingCode ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Link2 className="h-4 w-4 mr-2" />}
+                Generate Link Code
+              </Button>
+            )}
+          </Card>
+        )}
 
         {/* Theme */}
         <Card className="p-6">

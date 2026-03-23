@@ -22,6 +22,7 @@ import Relationships from "./pages/Relationships";
 import Bullying from "./pages/Bullying";
 import HeadspaceHangout from "./pages/HeadspaceHangout";
 import ResetPassword from "./pages/ResetPassword";
+import Messages from "./pages/Messages";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/finance" element={<Finance />} />
             <Route path="/relationships" element={<Relationships />} />
             <Route path="/bullying" element={<Bullying />} />
+            <Route path="/messages" element={<Messages />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

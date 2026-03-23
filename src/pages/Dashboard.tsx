@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo, Sparkles, User, Moon, Sun, Bell, HelpCircle } from "lucide-react";
+import { Brain, BookOpen, Users, Heart, Briefcase, DollarSign, MessageCircle, Shield, MessageSquare, LogOut, ListTodo, Sparkles, User, Moon, Sun, Bell, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -13,6 +13,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "next-themes";
+import { useUserRole, UserRole } from "@/hooks/useUserRole";
+import { ParentDashboard } from "@/components/ParentDashboard";
+import { AdminDashboard } from "@/components/AdminDashboard";
+import { Badge } from "@/components/ui/badge";
 
 const getUserInitials = (user: SupabaseUser): string => {
   const name = user.user_metadata?.full_name;
@@ -56,6 +60,14 @@ const affirmations = [
   "You are stronger than you think",
 ];
 
+const getRoleBadgeLabel = (role: UserRole) => {
+  switch (role) {
+    case "parent": return "Parent";
+    case "admin": return "School Admin";
+    default: return "Student";
+  }
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<SupabaseUser | null>(null);
@@ -63,6 +75,7 @@ const Dashboard = () => {
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
+  const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -117,7 +130,13 @@ const Dashboard = () => {
 
   const isDark = theme === "dark";
 
-  if (!user) return null;
+  if (!user || roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary-glow/5 to-secondary/5">
@@ -125,9 +144,16 @@ const Dashboard = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50 safe-top">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              Stone Path Project
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Stone Path Project
+              </h1>
+              {role && role !== "student" && (
+                <Badge variant="secondary" className="text-xs">
+                  {getRoleBadgeLabel(role)}
+                </Badge>
+              )}
+            </div>
             <p className="text-sm text-muted-foreground">Welcome back, {user?.user_metadata?.full_name || user?.email}!</p>
           </div>
           <DropdownMenu>
@@ -153,10 +179,12 @@ const Dashboard = () => {
                 <User className="mr-2 h-4 w-4" />
                 Edit Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/tasks")}>
-                <ListTodo className="mr-2 h-4 w-4" />
-                Tasks
-              </DropdownMenuItem>
+              {role === "student" && (
+                <DropdownMenuItem onClick={() => navigate("/tasks")}>
+                  <ListTodo className="mr-2 h-4 w-4" />
+                  Tasks
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -193,68 +221,75 @@ const Dashboard = () => {
       </header>
 
       <main className="container mx-auto px-4 py-8">
-        {/* Daily Affirmation */}
-        <Card className="mb-8 p-8 text-center bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 shadow-lg overflow-hidden">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-            Daily Affirmation
-          </h2>
-          <div className="relative min-h-[4rem] flex items-center justify-center">
-            <p 
-              key={currentAffirmation}
-              className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-in fade-in zoom-in"
-              style={{ animationDuration: '2000ms' }}
-            >
-              {affirmations[currentAffirmation]}
-            </p>
-          </div>
-        </Card>
-
-        {/* Headspace Hangout Card */}
-        <Card
-          className="mb-8 p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-primary/5 to-secondary/5"
-          onClick={() => navigate("/headspace-hangout")}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary-foreground" />
+        {/* Role-based content */}
+        {role === "parent" && <ParentDashboard />}
+        {role === "admin" && <AdminDashboard />}
+        {role === "student" && (
+          <>
+            {/* Daily Affirmation */}
+            <Card className="mb-8 p-8 text-center bg-gradient-to-r from-primary/10 via-secondary/10 to-primary/10 border-2 shadow-lg overflow-hidden">
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Daily Affirmation
+              </h2>
+              <div className="relative min-h-[4rem] flex items-center justify-center">
+                <p
+                  key={currentAffirmation}
+                  className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent animate-in fade-in zoom-in"
+                  style={{ animationDuration: '2000ms' }}
+                >
+                  {affirmations[currentAffirmation]}
+                </p>
               </div>
-              <div>
-                <h3 className="text-lg font-bold">Headspace Hangout</h3>
-                <p className="text-sm text-muted-foreground">Guided reflection & self-discovery</p>
+            </Card>
+
+            {/* Headspace Hangout Card */}
+            <Card
+              className="mb-8 p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 bg-gradient-to-r from-primary/5 to-secondary/5"
+              onClick={() => navigate("/headspace-hangout")}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold">Headspace Hangout</h3>
+                    <p className="text-sm text-muted-foreground">Guided reflection & self-discovery</p>
+                  </div>
+                </div>
+                <PCTStats compact />
+              </div>
+            </Card>
+
+            {/* Pillars Grid */}
+            <div>
+              <h2 className="text-2xl font-bold mb-6">Your Support Pillars</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {pillars.map((pillar) => {
+                  const Icon = pillar.icon;
+                  return (
+                    <Card
+                      key={pillar.id}
+                      className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
+                      onClick={() => handlePillarClick(pillar.id)}
+                    >
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="font-semibold text-base text-center">{pillar.name}</span>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
-            <PCTStats compact />
-          </div>
-        </Card>
 
-        {/* Pillars Grid */}
-        <div>
-          <h2 className="text-2xl font-bold mb-6">Your Support Pillars</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {pillars.map((pillar) => {
-              const Icon = pillar.icon;
-              return (
-                <Card
-                  key={pillar.id}
-                  className="p-6 cursor-pointer border-2 hover:border-primary/50 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col items-center gap-3"
-                  onClick={() => handlePillarClick(pillar.id)}
-                >
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${pillar.color} flex items-center justify-center`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="font-semibold text-base text-center">{pillar.name}</span>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* News Carousel */}
-        <NewsCarousel />
+            {/* News Carousel */}
+            <NewsCarousel />
+          </>
+        )}
       </main>
 
-      {/* Floating AI Assistant */}
+      {/* Floating AI Assistant - show for all roles */}
       <Button
         variant="gradient"
         size="icon"
