@@ -7,6 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { GraduationCap, Users, ShieldCheck } from "lucide-react";
+
+type SignupRole = "student" | "parent" | "admin";
+
+const roleOptions = [
+  { value: "student" as SignupRole, label: "Student", icon: GraduationCap, description: "Access all 8 support pillars, tasks, and peer features" },
+  { value: "parent" as SignupRole, label: "Parent", icon: Users, description: "Monitor your child's mood, assignments, and school updates" },
+  { value: "admin" as SignupRole, label: "School Admin", icon: ShieldCheck, description: "Manage reports, requests, and announcements" },
+];
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -16,9 +25,9 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupName, setSignupName] = useState("");
+  const [signupRole, setSignupRole] = useState<SignupRole>("student");
 
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate("/dashboard");
@@ -48,15 +57,12 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       });
-
       if (error) throw error;
-
       if (data.user) {
         toast.success("Welcome back!");
         navigate("/dashboard");
@@ -71,7 +77,6 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
     try {
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
@@ -80,12 +85,11 @@ const Auth = () => {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: signupName,
-          }
-        }
+            role: signupRole,
+          },
+        },
       });
-
       if (error) throw error;
-
       if (data.session) {
         toast.success("Account created successfully! Welcome!");
         navigate("/dashboard");
@@ -120,82 +124,72 @@ const Auth = () => {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      required
-                    />
+                    <Input id="login-email" type="email" placeholder="you@example.com" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
+                    <Input id="login-password" type="password" placeholder="••••••••" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading} variant="gradient" size="lg">
                     {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                   <div className="text-center">
-                    <button
-                      type="button"
-                      className="text-sm text-primary hover:underline"
-                      onClick={handleForgotPassword}
-                      disabled={isLoading}
-                    >
+                    <button type="button" className="text-sm text-primary hover:underline" onClick={handleForgotPassword} disabled={isLoading}>
                       Forgot your password?
                     </button>
                   </div>
                 </form>
               </TabsContent>
-              
+
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
+                  {/* Role Selector */}
+                  <div className="space-y-2">
+                    <Label>I am a...</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {roleOptions.map((option) => {
+                        const Icon = option.icon;
+                        const isSelected = signupRole === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => setSignupRole(option.value)}
+                            className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all text-center ${
+                              isSelected
+                                ? "border-primary bg-primary/10 shadow-sm"
+                                : "border-border hover:border-primary/30 hover:bg-muted/50"
+                            }`}
+                          >
+                            <Icon className={`h-5 w-5 ${isSelected ? "text-primary" : "text-muted-foreground"}`} />
+                            <span className={`text-xs font-medium ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
+                              {option.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground text-center mt-1">
+                      {roleOptions.find(r => r.value === signupRole)?.description}
+                    </p>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="Your name"
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      required
-                    />
+                    <Input id="signup-name" type="text" placeholder="Your name" value={signupName} onChange={(e) => setSignupName(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      required
-                    />
+                    <Input id="signup-email" type="email" placeholder="you@example.com" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      required
-                      minLength={6}
-                    />
+                    <Input id="signup-password" type="password" placeholder="••••••••" value={signupPassword} onChange={(e) => setSignupPassword(e.target.value)} required minLength={6} />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading} variant="gradient" size="lg">
                     {isLoading ? "Creating account..." : "Create Account"}
