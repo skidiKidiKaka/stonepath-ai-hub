@@ -1,61 +1,185 @@
 
 
-## Peer Connect Overhaul: Deep Questions, Depth Tracking, and AI Banter
+## Multi-Role Panel System with Inter-Panel Communication
 
-### Problem
-Currently Peer Connect uses only 3 AI-generated MCQ questions per session at a single depth level. The experience is shallow and doesn't build meaningful connection between peers.
+### The Communication Problem
 
-### What Changes
+The previous plan defined three isolated panels. The user wants them interconnected. Here's how data flows between panels:
 
-**1. Static Question Bank (new data file)**
-Create `src/data/peerConnectQuestions.ts` containing all 80+ questions organized by pillar and depth level. Each pillar has 10 questions with 5 options (A-E), tagged with a depth tier:
-- **Level 1 (Surface)**: Questions 1-3 — light, introductory
-- **Level 2 (Real)**: Questions 4-6 — personal, more revealing
-- **Level 3 (Deep)**: Questions 7-8 — vulnerable, emotional
-- **Level 4 (Unhinged)**: Questions 9-10 — raw, profound, no-holds-barred
+```text
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│   STUDENT    │────────▶│   PARENT     │────────▶│  SCHOOL ADMIN│
+│              │◀────────│              │◀────────│              │
+└──────────────┘         └──────────────┘         └──────────────┘
 
-The user's provided questions will be the foundation. Additional questions can be added per pillar to fill gaps. All 8 pillars covered: Mental Health, Academics, Friendships, Relationships, Peer Support, Fitness & Wellness, Career, Finance.
+Student ↔ Parent:
+  - Parent sees child's mood entries, assignments, activity
+  - Parent can send encouragement messages to child
+  - Child sees parent's messages in their dashboard
 
-**2. Depth Progression with Checkpoints**
-Modify `PeerConnectSession.tsx` to:
-- Load questions from the static bank instead of AI-generated 3-card set
-- Start at Level 1 and progress through levels
-- After every 5 questions, show a **checkpoint screen** with two options: "Go Deeper" or "Start Chatting"
-- Track current depth level visually (e.g., a depth meter/gauge showing Level 1-4 with labels like "Surface → Real → Deep → Unhinged")
-- If they choose chat, they can return to questions via a "Resume Questions" button in the chat UI
+Student ↔ Admin:
+  - Student submits bullying reports, counselor/mentor requests
+  - Admin reviews and updates status → student sees status changes
+  - Admin posts announcements → students see them
 
-**3. Connection Score System**
-- After each question reveal, calculate a "Connection Score" based on answer similarity and depth reached
-- Same answer = +3 points, adjacent answer = +1, deeper level = multiplier (Level 2 = 1.5x, Level 3 = 2x, Level 4 = 3x)
-- Display a live "Connection Meter" showing the bond strength (0-100 scale with labels: Strangers → Acquaintances → Getting Real → Bonded → Soulbound)
-- Store final connection_score on `peer_connect_sessions` table (column already exists)
+Parent ↔ Admin:
+  - Parent views school announcements from admin
+  - Parent can message admin about concerns (re: their child)
+  - Admin can flag issues to parent (attendance, mood alerts)
+```
 
-**4. Chat ↔ Questions Toggle**
-Modify `PeerConnectChat.tsx` to add a "Resume Questions" button in the chat header. This switches the phase back to "cards" in `PeerConnectSession`, preserving progress. The session component manages both phases and allows toggling.
+### Database Changes
 
-**5. AI Banter in Chat**
-Modify the `generate-peer-prompts` edge function's `demo-chat` handler and add a new `ai-banter` type:
-- Every few messages (3-5), the AI injects a short, witty comment as a "system" message styled differently in the UI (not from either peer)
-- The banter references their icebreaker answers AND the current chat context
-- Styled as a distinct "AI wingman" bubble (different color, small text, with a sparkle icon)
-- For demo mode, this integrates into the existing Alex chat flow
-- For real peer mode, the banter is generated client-side and displayed locally (not persisted as a peer message)
+**1. Add `role` to profiles table**
+```sql
+ALTER TABLE profiles ADD COLUMN role text NOT NULL DEFAULT 'student';
+```
 
-**6. Edge Function Updates**
-- `peer-connect-match/index.ts`: Instead of generating 3 AI questions, pull from the static bank. Send the full question set for the selected pillar to the session's `prompts` JSONB column.
-- `generate-peer-prompts/index.ts`: Add `ai-banter` type that takes recent chat messages + answer summary and returns a witty one-liner. Update `spark` generation to be depth-aware.
+**2. Update `handle_new_user()` trigger** to save role from signup metadata.
 
-### Files to Create
-- `src/data/peerConnectQuestions.ts` — Static question bank (all 8 pillars, ~80 questions)
+**3. Create `parent_student_links` table**
+Links parent accounts to student accounts. Parents can only see data for linked students.
+```sql
+CREATE TABLE parent_student_links (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  parent_id uuid NOT NULL,
+  student_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'pending',  -- pending/active/rejected
+  link_code text UNIQUE,  -- student generates code, parent enters it
+  created_at timestamptz DEFAULT now()
+);
+```
+- Student generates a unique link code from their profile
+- Parent enters code to request link
+- Student confirms to activate
 
-### Files to Modify
-- `src/components/PeerConnectSession.tsx` — Depth progression, checkpoints every 5 questions, connection score, toggle between cards/chat
-- `src/components/PeerConnectCard.tsx` — Show depth level indicator, 5 options instead of 4
-- `src/components/PeerConnectChat.tsx` — "Resume Questions" button, AI banter bubbles, pass answer context for banter
-- `src/components/PeerConnectLobby.tsx` — Update tip text for new question count
-- `supabase/functions/peer-connect-match/index.ts` — Use static question bank, send full pillar question set
-- `supabase/functions/generate-peer-prompts/index.ts` — Add `ai-banter` type, update spark for depth context
+**4. Create `announcements` table**
+Admin posts announcements visible to students and parents.
+```sql
+CREATE TABLE announcements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id uuid NOT NULL,
+  school text NOT NULL,
+  title text NOT NULL,
+  content text NOT NULL,
+  target_roles text[] DEFAULT '{student,parent}',
+  is_pinned boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+```
 
-### No Database Changes Needed
-The existing `peer_connect_sessions.connection_score` column and `peer_connect_sessions.prompts` JSONB column can store all new data. The `peer_connect_responses` table already tracks per-card answers.
+**5. Create `messages` table for cross-role messaging**
+```sql
+CREATE TABLE panel_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id uuid NOT NULL,
+  recipient_id uuid NOT NULL,
+  subject text,
+  content text NOT NULL,
+  is_read boolean DEFAULT false,
+  context text,  -- 'parent_encouragement', 'admin_alert', 'parent_concern'
+  created_at timestamptz DEFAULT now()
+);
+```
+
+**6. Update RLS policies**
+- `bullying_reports`: Admin (role='admin') can SELECT and UPDATE status
+- `counselor_requests`: Admin can SELECT and UPDATE status
+- `mentor_requests`: Admin can SELECT and UPDATE status
+- `mood_entries`: Parents can SELECT for linked students
+- `assignments`: Parents can SELECT for linked students
+- `announcements`: Admin can INSERT/UPDATE/DELETE; students/parents can SELECT (filtered by school + target_roles)
+- `panel_messages`: Users can SELECT/INSERT their own sent/received messages
+- `parent_student_links`: Both parent and student can see their own links
+
+**7. Create `has_role` security definer function**
+```sql
+CREATE FUNCTION has_role(_user_id uuid, _role text)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE user_id = _user_id AND role = _role
+  )
+$$;
+```
+
+**8. Create `is_linked_parent` security definer function**
+```sql
+CREATE FUNCTION is_linked_parent(_parent_id uuid, _student_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+SET search_path = public AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM parent_student_links
+    WHERE parent_id = _parent_id AND student_id = _student_id AND status = 'active'
+  )
+$$;
+```
+
+### Auth Changes
+
+- **Signup form**: Add role selector (Student / Parent / School Admin) with icons
+- Pass `role` in `user_metadata`, trigger saves to profiles
+
+### Frontend Components
+
+**Shared:**
+- `useUserRole` hook — fetches role from profiles
+- `RoleGuard` component — protects routes by role
+
+**Student Panel (existing, minor additions):**
+- Add "Link Code" generator in Profile (for parent linking)
+- Add "Announcements" section on dashboard (from admin)
+- Add "Messages from Parent" notification indicator
+- Bullying report / counselor / mentor request status tracking (see admin updates)
+
+**Parent Panel (new):**
+- `ParentDashboard.tsx` — overview of linked children
+- `ChildLinking.tsx` — enter link code to connect to child
+- `ChildMoodOverview.tsx` — read-only view of child's mood_entries
+- `ChildActivitySummary.tsx` — read-only assignments, streaks
+- `ParentMessages.tsx` — send encouragement to child, message admin
+- Announcements viewer (filtered by school)
+
+**Admin Panel (new):**
+- `AdminDashboard.tsx` — stats overview
+- `BullyingReportsManager.tsx` — view/update bullying_reports status
+- `CounselorRequestsManager.tsx` — view/update counselor_requests
+- `MentorRequestsManager.tsx` — view/update mentor_requests
+- `AnnouncementManager.tsx` — create/edit/delete announcements
+- `StudentOverview.tsx` — aggregated stats (user count, mood trends by school)
+- `AdminMessages.tsx` — communicate with parents about concerns
+
+### Routing
+
+```text
+/dashboard          → role-based: StudentDashboard | ParentDashboard | AdminDashboard
+/profile            → shared (all roles)
+/help, /feedback    → shared
+/link-child         → parent only
+/admin/reports      → admin only
+/admin/requests     → admin only
+/admin/announcements→ admin only
+/admin/students     → admin only
+All pillar routes   → student only
+```
+
+### Inter-Panel Communication Flows
+
+1. **Student submits bullying report** → stored in DB → Admin sees it in real-time (realtime subscription) → Admin updates status → Student sees updated status
+2. **Parent links to student** → Student generates code → Parent enters code → Link activated → Parent can now view child's mood/assignments
+3. **Admin posts announcement** → Filtered by school + target_roles → Students and parents see it on their dashboards
+4. **Parent sends encouragement** → Stored in panel_messages → Student sees notification on dashboard
+5. **Admin flags concern to parent** → Stored in panel_messages with context → Parent sees alert
+
+### Build Order
+
+1. Database migration (role column, new tables, RLS, helper functions)
+2. Update signup with role selection + trigger
+3. `useUserRole` hook + role-based dashboard routing
+4. Student link code generation + parent linking flow
+5. Parent dashboard with child data views
+6. Admin dashboard with report/request management
+7. Cross-role messaging
+8. Announcements system
+9. Real-time notifications for cross-panel updates
 
