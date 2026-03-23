@@ -13,6 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
 
+import { useUserRole } from "@/hooks/useUserRole";
+import { Badge } from "@/components/ui/badge";
+import { Copy, Link2 } from "lucide-react";
+
 interface ProfileData {
   full_name: string | null;
   avatar_url: string | null;
@@ -24,6 +28,7 @@ interface ProfileData {
   grade: string | null;
   bio: string | null;
   phone: string | null;
+  role: string | null;
 }
 
 const Profile = () => {
