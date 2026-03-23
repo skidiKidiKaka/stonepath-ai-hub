@@ -45,6 +45,9 @@ const Profile = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const { theme, setTheme } = useTheme();
+  const { role } = useUserRole();
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
 
   const [gender, setGender] = useState("");
   const [birthdate, setBirthdate] = useState("");
