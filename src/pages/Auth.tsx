@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Users, ShieldCheck } from "lucide-react";
+import { GraduationCap, Users } from "lucide-react";
 
 type SignupRole = "student" | "parent";
 
