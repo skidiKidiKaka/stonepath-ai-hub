@@ -7,14 +7,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, Users, ShieldCheck } from "lucide-react";
+import { GraduationCap, Users } from "lucide-react";
 
-type SignupRole = "student" | "parent" | "admin";
+type SignupRole = "student" | "parent";
 
 const roleOptions = [
   { value: "student" as SignupRole, label: "Student", icon: GraduationCap, description: "Access all 8 support pillars, tasks, and peer features" },
   { value: "parent" as SignupRole, label: "Parent", icon: Users, description: "Monitor your child's mood, assignments, and school updates" },
-  { value: "admin" as SignupRole, label: "School Admin", icon: ShieldCheck, description: "Manage reports, requests, and announcements" },
 ];
 
 const Auth = () => {
