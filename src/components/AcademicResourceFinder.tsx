@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Send, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import DOMPurify from "dompurify";
 
 interface Message {
   role: "user" | "assistant";
@@ -12,14 +13,27 @@ interface Message {
 }
 
 const renderMarkdown = (text: string) => {
-  let html = text
+  // Escape HTML entities first to prevent injection
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  
+  let html = escaped
     .replace(/### (.+)/g, '<h3 class="font-semibold text-sm mt-3 mb-1">$1</h3>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, label, url) => {
+      // Only allow http/https URLs
+      if (/^https?:\/\//i.test(url)) {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">${label}</a>`;
+      }
+      return label;
+    })
     .replace(/^---$/gm, '<hr class="my-2 border-border" />')
     .replace(/^- (.+)$/gm, '<li class="text-sm ml-4 list-disc">$1</li>')
     .replace(/\n/g, '<br />');
-  return html;
+  
+  return DOMPurify.sanitize(html);
 };
 
 export const AcademicResourceFinder = () => {
