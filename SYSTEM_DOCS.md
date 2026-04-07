@@ -1,6 +1,7 @@
-# Stone Path Project — System Documentation
+# Stone Path AI Hub — Complete System Documentation
 
-> **Version:** 1.0 · **Last updated:** 2026-04-07 · **Audience:** Engineers unfamiliar with the project
+> **Audience**: Engineers who need to understand, debug, modify, or extend this system.
+> **Last Updated**: April 2026 | **Version**: 2.0.0
 
 ---
 
@@ -8,12 +9,18 @@
 
 1. [Overview](#1-overview)
 2. [Architecture](#2-architecture)
-3. [Data Flow](#3-data-flow)
-4. [APIs / Interfaces](#4-apis--interfaces)
-5. [Key Decisions & Tradeoffs](#5-key-decisions--tradeoffs)
-6. [Edge Cases & Failure Modes](#6-edge-cases--failure-modes)
-7. [Setup & Usage](#7-setup--usage)
-8. [Limitations](#8-limitations)
+3. [Authentication & Role System](#3-authentication--role-system)
+4. [Data Flow](#4-data-flow)
+5. [Database Schema](#5-database-schema)
+6. [Edge Functions (APIs)](#6-edge-functions-apis)
+7. [Frontend Component Architecture](#7-frontend-component-architecture)
+8. [Real-Time Features](#8-real-time-features)
+9. [Security Model](#9-security-model)
+10. [Cross-Role Communication](#10-cross-role-communication)
+11. [Key Decisions & Tradeoffs](#11-key-decisions--tradeoffs)
+12. [Edge Cases & Failure Modes](#12-edge-cases--failure-modes)
+13. [Setup & Usage](#13-setup--usage)
+14. [Limitations & Technical Debt](#14-limitations--technical-debt)
 
 ---
 
@@ -21,466 +28,425 @@
 
 ### What It Does
 
-Stone Path Project is a comprehensive support platform for high school students. It provides tools and resources across **eight core pillars**: Mental Health, Academics, Career, Finance, Fitness, Friendships, Relationships, and Bullying Prevention (Peer Support).
+Stone Path AI Hub is a comprehensive support platform for high school students, their parents, and school administrators. It provides AI-powered guidance, task management, mood tracking, peer connection, and educational tools across eight life pillars:
 
-The platform serves three user roles:
-
-| Role | Purpose |
-|------|---------|
-| **Student** | Full access to all 8 pillars, tasks, peer features, AI chat, and Headspace Hangout |
-| **Parent** | Read-only view of linked child's mood and assignments; messaging; school announcements |
-| **School Admin** | Manage bullying reports, counselor/mentor requests; publish announcements |
+| Pillar | Purpose | Key Features |
+|--------|---------|-------------|
+| **Career** | Career exploration | Quiz assessments, resume builder, interview coaching |
+| **Mental Health** | Emotional wellness | Mood tracker (7-level scale), mood charts, counselor requests |
+| **Academics** | Study management | Assignment CRUD, Pomodoro timer, AI note generation (4 formats) |
+| **Friendships** | Social coordination | Groups, real-time chat, availability polls, event planning |
+| **Relationships** | Guidance | Anonymous Q&A board with admin approval |
+| **Peer Support** | Anti-bullying | Anonymous incident reporting, mentor matching |
+| **Fitness** | Physical health | Workout logging, streak tracking (auto-calculated via trigger) |
+| **Finance** | Money management | Transactions, budget categories, savings goals, chore allowances |
 
 ### Why It Exists
 
-High school students face challenges across multiple dimensions of life. Existing tools address these in isolation (a mood tracker here, a budgeting app there). Stone Path unifies them into a single platform with inter-role communication so parents and school staff can provide support without micromanaging.
+High school students face challenges across multiple life domains simultaneously. Existing tools address one domain at a time. Stone Path integrates all of these into a single platform with AI assistance, and extends visibility to parents and school administrators through a multi-role panel system.
+
+### Three Roles
+
+- **Student**: Full access to all 8 pillars, Headspace Hangout, Peer Connect, task planner, AI chat
+- **Parent**: Read-only view of linked child's mood entries and assignments, school announcements, cross-role messaging
+- **Admin (School)**: Manage bullying reports, counselor/mentor requests, publish school-wide announcements
 
 ---
 
 ## 2. Architecture
 
-### High-Level Design
+### High-Level System Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│  React 18 + Vite 5 + TypeScript + Tailwind CSS + shadcn/ui  │
-│  Wrapped in Capacitor for iOS/Android                        │
-└────────────────────────┬────────────────────────────────────┘
-                         │ Supabase JS SDK
-┌────────────────────────▼────────────────────────────────────┐
-│                   Supabase (Lovable Cloud)                   │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────┐            │
-│  │ Auth      │  │ PostgreSQL   │  │ Storage    │            │
-│  │ (email)   │  │ + RLS        │  │ (avatars,  │            │
-│  └──────────┘  └──────────────┘  │  photos)   │            │
-│  ┌──────────────────────────┐    └────────────┘            │
-│  │ 19 Edge Functions        │                               │
-│  │ (AI chat, quiz gen,      │                               │
-│  │  career insights, etc.)  │                               │
-│  └──────────────────────────┘                               │
-│  ┌──────────────────────────┐                               │
-│  │ Realtime (WebSocket)     │                               │
-│  │ (messages, peer connect) │                               │
-│  └──────────────────────────┘                               │
-└─────────────────────────────────────────────────────────────┘
-                         │
-              ┌──────────▼──────────┐
-              │ External AI Gateway │
-              │ (Lovable AI / OpenAI│
-              │  / DeepSeek)        │
-              └─────────────────────┘
+CLIENT (Browser)
+  React 18 SPA  |  Vite 5  |  TypeScript 5  |  Tailwind CSS 3
+  Pages (16)  |  Components (30+ feature, 40+ UI shadcn)
+  Hooks (useUserRole, useMobile)
+  Supabase Client (auth, from, functions, storage, channel)
+              |
+              | HTTPS / WSS
+              v
+SUPABASE PLATFORM
+  Auth Service          PostgreSQL              Edge Functions (19)
+  - Email/Password      - 35 tables             - ai-chat (SSE streaming)
+  - JWT tokens          - RLS on all tables      - generate-notes
+  - Auto-confirm        - 7 database functions   - generate-quiz
+  - Password reset      - Triggers               - generate-career-*
+                                                 - finance-insights
+  Realtime              Storage                  - peer-connect-match
+  - WebSocket           - avatars (public)       - fetch-real-news
+  - postgres_changes    - group-photos (private) - ... (12 more)
+  - group_messages                                       |
+  - panel_messages                                       v
+  - peer_connect_lobby                           External AI Providers
+                                                 - Lovable AI Gateway (Gemini 2.5 Flash)
+                                                 - DeepSeek (optional)
 ```
 
-### Key Components and Responsibilities
+### Component Responsibilities
 
-#### Frontend
+| Layer | Component | Responsibility |
+|-------|-----------|---------------|
+| **Entry** | `main.tsx` | Mounts React app to DOM |
+| **Root** | `App.tsx` | Wraps app in ThemeProvider, QueryClientProvider, TooltipProvider, BrowserRouter. Defines all 17 routes. |
+| **Auth** | `Auth.tsx` | Login/signup with role selection (student/parent). Calls `supabase.auth.signUp` with `role` in `user_metadata`. |
+| **Router** | `Dashboard.tsx` | Reads `useUserRole()` hook. Renders ParentDashboard, AdminDashboard, or student content based on role. |
+| **State** | `TanStack Query` | Used in `Finance.tsx` for `useQuery`. Most other pages use `useState` + `useEffect`. |
+| **AI** | `AiChatDialog.tsx` | Floating chat dialog. Streams SSE responses from `ai-chat` edge function. Supports file upload. |
+| **Realtime** | `GroupChat.tsx`, `Messages.tsx` | Subscribe to `postgres_changes` on group_messages and panel_messages. |
 
-| Component / File | Responsibility |
-|-----------------|----------------|
-| `src/App.tsx` | Route definitions. Single flat routing — no nested layouts. |
-| `src/pages/Auth.tsx` | Login, signup with role selection (Student or Parent). Password reset. |
-| `src/pages/Dashboard.tsx` | Role-based routing: renders `ParentDashboard`, `AdminDashboard`, or student view depending on `useUserRole()`. |
-| `src/hooks/useUserRole.ts` | Hook that fetches the user's role from the `profiles` table. Returns `{ role, loading }`. |
-| `src/components/RoleGuard.tsx` | Wrapper that redirects users to `/dashboard` if their role is not in `allowedRoles`. |
-| `src/components/ParentDashboard.tsx` | Parent panel: link children, view child mood/assignments, messages, announcements. |
-| `src/components/AdminDashboard.tsx` | Admin panel: manage bullying reports, counselor/mentor requests, publish announcements. |
-| `src/pages/Messages.tsx` | Cross-role messaging between linked parent-student accounts. Uses Supabase Realtime. |
-| Pillar pages (`MentalHealth`, `Academics`, `Career`, `Finance`, `Fitness`, `Friendships`, `Relationships`, `Bullying`) | Student-only feature pages, each with multiple sub-features. |
-| `src/pages/HeadspaceHangout.tsx` | Guided reflection (PCT sessions) and Peer Connect (real-time peer matching). |
+### Technology Stack
 
-#### Database (36 tables)
-
-Core tables grouped by domain:
-
-| Domain | Tables |
-|--------|--------|
-| **Identity** | `profiles` (role, personal info, link to auth.users) |
-| **Multi-role** | `parent_student_links`, `panel_messages`, `announcements` |
-| **Mental Health** | `mood_entries`, `pct_sessions`, `pct_responses`, `pct_streaks`, `pct_prompt_cache` |
-| **Academics** | `assignments` |
-| **Career** | `career_quiz_results` |
-| **Finance** | `budget_categories`, `transactions`, `savings_goals`, `chores`, `chore_completions` |
-| **Fitness** | `workout_logs`, `fitness_streaks` |
-| **Social** | `groups`, `group_members`, `group_messages`, `group_events`, `event_rsvps`, `event_availability`, `availability_polls`, `availability_responses`, `user_availability`, `trusted_peers`, `peer_connect_lobby`, `peer_connect_sessions`, `peer_connect_messages`, `peer_connect_responses` |
-| **Safety** | `bullying_reports`, `counselor_requests`, `mentor_requests` |
-| **Relationships** | `relationship_questions` |
-
-#### Edge Functions (19 total)
-
-All edge functions follow the same pattern:
-1. `verify_jwt = false` in `supabase/config.toml`
-2. Manual JWT validation via `supabase.auth.getClaims(token)`
-3. Return `401` if unauthenticated
-4. Call external AI API (Lovable AI Gateway, OpenAI, or DeepSeek)
-5. Return JSON response
-
-| Function | Purpose |
-|----------|---------|
-| `ai-chat` | General AI assistant chat |
-| `generate-notes` | AI-powered note generation |
-| `generate-mood-tips` | Mood-based wellness tips |
-| `generate-pct-prompts` | Personal Contemplation Time prompts |
-| `generate-peer-prompts` | Peer Connect conversation prompts |
-| `generate-quiz` | Career personality quiz questions |
-| `generate-quiz-image` | Quiz result images |
-| `generate-career-insights` | Career exploration insights |
-| `generate-career-details` | Detailed career info |
-| `generate-news` | AI-generated news summaries |
-| `fetch-real-news` | Fetches real news via API |
-| `generate-recipe` | Nutrition/fitness recipes |
-| `generate-zodiac-wellness` | Zodiac-based wellness tips |
-| `interview-coach` | Mock interview practice |
-| `mood-tts` | Text-to-speech for mood content |
-| `peer-connect-match` | Matches peers in lobby |
-| `seed-pct-cache` | Pre-generates PCT prompts |
-| `academic-resource-finder` | Educational resource lookup chatbot |
-| `finance-insights` | Budget/spending AI analysis |
-
-#### Storage Buckets
-
-| Bucket | Visibility | Purpose |
-|--------|-----------|---------|
-| `avatars` | Public | User profile pictures |
-| `group-photos` | Private | Group media, accessed via group membership RLS |
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| React | 18.3.1 | UI framework |
+| TypeScript | 5.8.3 | Type safety |
+| Vite | 5.4.19 | Build tool, HMR |
+| Tailwind CSS | 3.4.17 | Utility-first styling |
+| shadcn/ui | ~40 components | Accessible UI primitives (Radix-based) |
+| TanStack Query | 5.83.0 | Server state management |
+| React Router DOM | 6.30.1 | Client-side routing |
+| Zod | 3.25.76 | Runtime schema validation |
+| Recharts | 2.15.4 | Charts (mood, budget, fitness) |
+| DOMPurify | 3.3.3 | XSS sanitization |
+| Supabase JS | 2.74.0 | Database, auth, storage, realtime, edge functions |
+| Deno | Runtime | Edge function execution |
 
 ---
 
-## 3. Data Flow
+## 3. Authentication & Role System
 
-### 3.1 User Registration & Role Assignment
-
-```
-User → Auth.tsx (selects Student or Parent)
-  → supabase.auth.signUp({ data: { role: "student" } })
-  → Supabase Auth creates user in auth.users
-  → Trigger: handle_new_user() fires
-    → INSERT INTO profiles (user_id, full_name, role)
-    → Trigger: prevent_admin_self_assign() fires
-      → If role = 'admin', silently downgrades to 'student'
-  → Session returned → redirect to /dashboard
-  → Dashboard.tsx reads role via useUserRole()
-  → Renders role-specific dashboard
-```
-
-### 3.2 Parent-Student Linking
+### Signup Flow (Step by Step)
 
 ```
-Student:
-  Profile.tsx → generates random 6-char link code
-  → INSERT INTO parent_student_links (student_id, link_code, status='pending')
-
-Parent:
-  ParentDashboard.tsx → enters link code
-  → SELECT from parent_student_links WHERE link_code = input
-  → UPDATE parent_student_links SET parent_id = auth.uid(), status = 'active'
-  → RLS: is_linked_parent() now returns true
-  → Parent can SELECT from mood_entries, assignments for that student
+User selects role ("Student" or "Parent") on Auth.tsx
+  -> enters name, email, password
+  -> supabase.auth.signUp({ email, password, options: { data: { full_name, role } } })
+  -> role stored in raw_user_meta_data
+     |
+     v
+TRIGGER: handle_new_user()
+  INSERT INTO profiles (user_id, full_name, role)
+  VALUES (NEW.id, metadata->>'full_name', COALESCE(metadata->>'role', 'student'))
+     |
+     v
+TRIGGER: prevent_admin_self_assign()
+  IF INSERT AND role = 'admin' -> downgrade to 'student'
+  IF UPDATE AND role changed   -> revert to old role
 ```
 
-### 3.3 Cross-Role Messaging
+**Admin creation**: Only via service-role SQL: `UPDATE profiles SET role = 'admin' WHERE user_id = '<uuid>';`
 
-```
-Sender → Messages.tsx
-  → Looks up linked accounts via parent_student_links
-  → INSERT INTO panel_messages (sender_id, recipient_id, content)
-  → Supabase Realtime broadcasts INSERT event
-  → Recipient's Messages.tsx receives event → refetch messages
-```
+### Role Detection (`useUserRole` hook)
 
-### 3.4 AI Feature Request (generic pattern)
-
-```
-User → Component (e.g., AiChatDialog)
-  → supabase.functions.invoke("ai-chat", { body: { messages } })
-  → Edge function:
-    1. Validates JWT from Authorization header
-    2. Validates input (presence, type, length)
-    3. Calls AI Gateway (Lovable AI or OpenAI)
-    4. Returns { content: "..." }
-  → Component renders response
-```
-
-### 3.5 Admin Report Management
-
-```
-Student (or anonymous):
-  → INSERT INTO bullying_reports (anonymous, no user_id column)
-  → RLS: WITH CHECK (true) allows insert
-
-Admin:
-  → AdminDashboard.tsx fetches bullying_reports
-  → RLS: has_role(auth.uid(), 'admin') grants SELECT
-  → Admin updates status (pending → reviewing → resolved)
-  → RLS: has_role(auth.uid(), 'admin') grants UPDATE
-```
-
----
-
-## 4. APIs / Interfaces
-
-### 4.1 Edge Function API Pattern
-
-All edge functions share this interface:
-
-**Request:**
-```
-POST /functions/v1/{function-name}
-Authorization: Bearer <JWT>
-Content-Type: application/json
-
-{ ...function-specific body }
-```
-
-**Response:**
-```json
-{ "content": "...", ...additional fields }
-```
-
-**Error responses:**
-- `401` — Missing or invalid JWT
-- `400` — Invalid input (missing fields, wrong types)
-- `500` — AI gateway failure
-
-### 4.2 Key Function Interfaces
-
-#### `ai-chat`
 ```typescript
-// Input
-{ messages: Array<{ role: "user" | "assistant", content: string }> }
-
-// Output
-{ content: string }
+// Queries profiles table, re-runs on auth state change
+const { data } = await supabase.from("profiles").select("role").eq("user_id", session.user.id).single();
+setRole(data?.role || "student");
 ```
 
-#### `generate-quiz`
+### Dashboard Routing
+
 ```typescript
-// Input
-{ topic?: string }
-
-// Output
-{ questions: Array<{ question: string, options: string[] }> }
+{role === "parent" && <ParentDashboard />}
+{role === "admin" && <AdminDashboard />}
+{role === "student" && <>Student pillars, news, affirmations</>}
 ```
 
-#### `peer-connect-match`
-```typescript
-// Input
-{ pillar: string, userId: string }
+**Known gap**: Pillar pages (`/finance`, `/mental-health`, etc.) have no role check. `RoleGuard.tsx` exists but is unused on those routes.
 
-// Output
-{ matched: boolean, sessionId?: string, partnerId?: string }
+### Password Reset
+
+1. Client: `supabase.auth.resetPasswordForEmail(email, { redirectTo: '/reset-password' })`
+2. Email sent with recovery token
+3. `ResetPassword.tsx`: `supabase.auth.updateUser({ password })`
+
+---
+
+## 4. Data Flow
+
+### 4.1 AI Chat (Streaming SSE) — Most Complex Flow
+
+```
+Browser                          Edge Function (ai-chat)           AI Provider
+  |                                    |                               |
+  |-- POST /functions/v1/ai-chat ----->|                               |
+  |   Headers: Bearer <anon_key>       |                               |
+  |   Body: {messages[], provider}     |                               |
+  |                                    |-- Verify JWT (getClaims) ---->|
+  |                                    |-- Validate input (1-100 msgs) |
+  |                                    |                               |
+  |                                    |-- POST to AI Gateway -------->|
+  |                                    |   model: gemini-2.5-flash     |
+  |                                    |   stream: true                |
+  |                                    |                               |
+  |<-- SSE stream (proxied) -----------|<-- SSE chunks ----------------|
+  |   data: {"choices":[{"delta":      |                               |
+  |          {"content":"token"}}]}    |                               |
+  |   ...                              |                               |
+  |   data: [DONE]                     |                               |
+  |                                    |                               |
+  v                                    |                               |
+  Client parses SSE line-by-line       |                               |
+  Extracts delta.content               |                               |
+  Appends to React state (streaming)   |                               |
 ```
 
-### 4.3 Database Helper Functions (RPC)
+**Implementation details**:
+- Full conversation history sent each request (no server-side sessions)
+- `textBuffer` handles partial JSON chunks across stream reads
+- Edge function proxies stream directly: `return new Response(response.body, headers)`
+- File uploads encoded as base64 data URLs in multi-part content format
+- Error codes: 401 (JWT), 429 (rate limit), 402 (credits exhausted)
 
-| Function | Signature | Purpose |
-|----------|-----------|---------|
-| `has_role` | `(user_id uuid, role text) → boolean` | Check if user has specific role. SECURITY DEFINER. |
-| `is_linked_parent` | `(parent_id uuid, student_id uuid) → boolean` | Check if parent-student link is active. SECURITY DEFINER. |
-| `is_group_member` | `(group_id uuid, user_id uuid) → boolean` | Check group membership with auth check. SECURITY DEFINER. |
+### 4.2 Parent-Student Linking
 
-### 4.4 Realtime Channels
+**Student**: Profile -> Generate Link Code -> `Math.random().toString(36).substring(2,8).toUpperCase()` (e.g., "X7K2M9") -> INSERT `parent_student_links` with `status: 'pending'`
 
-| Channel | Table | Purpose |
-|---------|-------|---------|
-| `panel-messages` | `panel_messages` | Cross-role direct messages |
-| `peer-connect` | `peer_connect_lobby`, `peer_connect_messages` | Peer matching and chat |
-| `group-chat` | `group_messages` | Group chat messages |
+**Parent**: Enter code -> SELECT by link_code -> UPDATE `parent_id` + `status: 'active'`
 
----
+**Result**: `is_linked_parent()` returns TRUE -> Parent can SELECT child's `mood_entries` and `assignments`
 
-## 5. Key Decisions & Tradeoffs
+**Edge cases**: Duplicate code -> unique constraint catch (23505) -> fetch existing. Students can DELETE links to revoke access.
 
-### 5.1 Role Stored on Profiles Table (not a separate user_roles table)
+### 4.3 Mood Tracking (3-Step Wizard)
 
-**Decision:** Role is a single `text` column on `profiles`, not a separate many-to-many `user_roles` table.
+1. Select mood 0-6 (emoji scale: cry to joy)
+2. Select feelings from mood-specific list (e.g., mood=0 -> 21 negative options)
+3. Select impact factors from 18 fixed options
+4. INSERT `mood_entries` -> client-side tip generation (rule engine, no AI call)
 
-**Why:** The app has exactly three mutually exclusive roles. A many-to-many table adds complexity without benefit. A database trigger (`prevent_admin_self_assign`) and RLS policies prevent escalation.
+### 4.4 Real-Time Group Chat
 
-**Tradeoff:** If multi-role support is ever needed (e.g., a parent who is also an admin), this column must be refactored into a join table.
+1. INSERT `group_messages` (RLS: must be group member)
+2. Supabase Realtime broadcasts postgres_changes
+3. Subscriber callback -> full re-fetch -> N+1 profile queries -> scroll to bottom
+4. Images: upload to `group-photos` -> 1-year signed URL -> stored in `image_url`
 
-### 5.2 `verify_jwt = false` with Manual Validation
+### 4.5 Note Generation (4 Formats)
 
-**Decision:** All edge functions set `verify_jwt = false` in `config.toml` and manually call `auth.getClaims()`.
-
-**Why:** This is the recommended Lovable Cloud pattern. It allows custom error handling, user context extraction, and consistent 401 responses. Automatic JWT verification provides less control.
-
-### 5.3 Anonymous Bullying Reports
-
-**Decision:** The `bullying_reports` table has no `user_id` column and uses `WITH CHECK (true)` for INSERT.
-
-**Why:** Victim safety. Requiring authentication could discourage reporting. Reports are INSERT-only (no UPDATE/DELETE for public role) and only visible to admins.
-
-**Tradeoff:** No way to follow up with the reporter. Potential for spam submissions.
-
-### 5.4 Public Avatars Bucket
-
-**Decision:** The `avatars` storage bucket is public.
-
-**Why:** Avatars are shown in multiple contexts (group chats, peer sessions, dashboards). Public access avoids signed URL overhead for every avatar render.
-
-**Tradeoff:** Avatar images are accessible to anyone with the URL, even unauthenticated users.
-
-### 5.5 Capacitor Wrapping for Mobile
-
-**Decision:** The web app is wrapped with Capacitor to run on iOS (Xcode) and Android Studio.
-
-**Why:** Single codebase for web and mobile. Safe area insets are handled via `env(safe-area-inset-*)` CSS.
-
-**Tradeoff:** No access to native UI components. Performance is limited to WebView capabilities.
+| Type | Output | Post-processing |
+|------|--------|-----------------|
+| `bullets` | Markdown | None |
+| `flashcards` | `[{question, answer}]` | Strip code blocks, validate JSON |
+| `mindmap` | `{central, branches}` | Strip code blocks, validate JSON |
+| `summary` | Prose | None |
 
 ---
 
-## 6. Edge Cases & Failure Modes
+## 5. Database Schema
 
-### Authentication
+### 35 Tables by Domain
 
-| Scenario | Handling |
-|----------|----------|
-| JWT expires during use | `supabase.auth.onAuthStateChange` detects session loss → redirects to `/auth` |
-| User signs up with `admin` role via API manipulation | `handle_new_user` trigger passes role to profiles → `prevent_admin_self_assign` trigger downgrades to `student` |
-| User tries to UPDATE their own role | RLS `WITH CHECK` + trigger both block the change |
+**User Management**: `profiles` (role, personal info), `parent_student_links` (link_code, status)
 
-### Parent-Student Linking
+**Academics**: `assignments`, `career_quiz_results`
 
-| Scenario | Handling |
-|----------|----------|
-| Invalid link code entered | Query returns no rows → "Invalid link code" error toast |
-| Link already active | Checked before update → "Already active" info toast |
-| Parent tries to link without parent role | RLS: `has_role(auth.uid(), 'parent')` blocks INSERT |
-| Student deletes link | RLS allows: `auth.uid() = student_id` on DELETE |
+**Mental Health**: `mood_entries` (mood_level int, feelings text[], impact_factors text[]), `counselor_requests`
 
-### AI Features
+**Social (10 tables)**: `groups`, `group_members` (role: member/admin/moderator), `group_messages` (content, image_url, is_moderated), `group_events`, `event_rsvps`, `event_availability`, `availability_polls`, `availability_responses`, `user_availability`, `trusted_peers`
 
-| Scenario | Handling |
-|----------|----------|
-| AI gateway returns error | Edge function catches → returns generic error → frontend shows "An error occurred" |
-| AI returns malicious HTML | `AcademicResourceFinder` escapes HTML entities before regex, validates URLs (https only), and sanitizes output with DOMPurify |
-| Rate limiting | Not implemented at app level — relies on Supabase function invocation limits |
+**Peer Support**: `bullying_reports` (NO user_id column - anonymous!), `mentor_requests`, `relationship_questions`
 
-### Data Access
+**Peer Connect (7 tables)**: `peer_connect_lobby`, `peer_connect_sessions`, `peer_connect_messages`, `peer_connect_responses`, `pct_sessions`, `pct_responses`, `pct_streaks`, `pct_prompt_cache`
 
-| Scenario | Handling |
-|----------|----------|
-| User tries to read another user's mood entries | RLS: `auth.uid() = user_id` blocks. Parents get access only via `is_linked_parent()` |
-| Non-member tries to read group messages | RLS: EXISTS check on `group_members` blocks access |
-| Query exceeds 1000-row Supabase default limit | Most queries use `.limit()`. Pagination not implemented for all views. |
+**Finance (5 tables)**: `transactions`, `budget_categories`, `savings_goals`, `chores`, `chore_completions`
 
-### Realtime
+**Fitness**: `workout_logs`, `fitness_streaks` (auto-calculated by trigger)
 
-| Scenario | Handling |
-|----------|----------|
-| User subscribes to someone else's message channel | RLS on `realtime.messages` restricts based on auth. Table-level RLS on `panel_messages` also enforces `sender_id OR recipient_id = auth.uid()` |
-| WebSocket disconnects | Supabase client auto-reconnects. UI fetches on reconnect via `onAuthStateChange`. |
+**Communication**: `panel_messages` (context tags: parent_encouragement, admin_alert), `announcements` (target_roles, is_pinned)
+
+### Database Functions (7)
+
+| Function | Type | Purpose |
+|----------|------|---------|
+| `handle_new_user()` | Trigger | Creates profile from auth metadata |
+| `prevent_admin_self_assign()` | Trigger | Blocks admin self-promotion |
+| `update_fitness_streak()` | Trigger | Auto-calculates workout streaks |
+| `has_role(uuid, text)` | SECURITY DEFINER | Role check for RLS |
+| `is_group_member(uuid, uuid)` | SECURITY DEFINER | Group membership check with caller verification |
+| `is_linked_parent(uuid, uuid)` | SECURITY DEFINER | Parent-student link check |
+| `update_updated_at_column()` | Trigger | Timestamp auto-update |
+
+### Fitness Streak Trigger Logic
+
+- No record: create with streak=1
+- Same day: no change
+- Consecutive day: streak++
+- Gap >1 day: reset to 1
+- Always: `longest_streak = GREATEST(new_streak, old_longest)`
 
 ---
 
-## 7. Setup & Usage
+## 6. Edge Functions (19 Total)
 
-### Prerequisites
+### Standard Pattern
 
-- **Node.js** 18+ and **Bun** (package manager)
-- **Lovable Cloud** project (provides Supabase backend automatically)
-- For mobile: **Xcode** (iOS) or **Android Studio** (Android) with **Capacitor**
+Every function: CORS preflight -> JWT verify via `getClaims` -> input validation -> business logic -> response
 
-### Development
+### Inventory
+
+| Function | Streaming? | AI Model |
+|----------|-----------|----------|
+| `ai-chat` | Yes (SSE) | Gemini 2.5 Flash / DeepSeek |
+| `academic-resource-finder` | Yes (SSE) | Gemini 2.5 Flash |
+| `generate-notes` | No | Gemini 2.5 Flash |
+| `generate-quiz` | No | Gemini 2.5 Flash |
+| `generate-career-insights` | No | Gemini 2.5 Flash |
+| `generate-career-details` | No | Gemini 2.5 Flash |
+| `interview-coach` | No | Gemini 2.5 Flash |
+| `generate-mood-tips` | No | Gemini 2.5 Flash |
+| `finance-insights` | No | Gemini 2.5 Flash |
+| `generate-recipe` | No | Gemini 2.5 Flash |
+| `generate-zodiac-wellness` | No | Gemini 2.5 Flash |
+| `generate-peer-prompts` | No | Gemini 2.5 Flash |
+| `generate-pct-prompts` | No | Gemini 2.5 Flash |
+| `seed-pct-cache` | No | Gemini 2.5 Flash |
+| `peer-connect-match` | No | Gemini 2.5 Flash |
+| `generate-quiz-image` | No | Gemini 2.5 Flash |
+| `mood-tts` | No | Gemini 2.5 Flash |
+| `fetch-real-news` | No | N/A (News API) |
+| `generate-news` | No | Gemini 2.5 Flash |
+
+### Required Secrets
+
+`LOVABLE_API_KEY` (all AI), `DEEPSEEK_API_KEY` (optional), `NEWS_API_KEY`, `NEWSDATA_API_KEY`
+
+---
+
+## 7. Frontend Component Architecture
+
+### Routing Map (17 Routes)
+
+`/` Index | `/auth` Auth | `/reset-password` | `/dashboard` (role-based) | `/profile` | `/messages` | `/tasks` | `/headspace-hangout` | `/mental-health` | `/academics` | `/friendships` | `/fitness` | `/career` | `/finance` | `/relationships` | `/bullying` | `/help` | `/feedback` | `*` NotFound
+
+### Key Component Tree
+
+```
+Dashboard.tsx
+  -> useUserRole()
+  -> Student: NewsCarousel, PCTStats, 8 Pillar Cards, AiChatDialog
+  -> Parent: ParentDashboard (link input, child moods/assignments, announcements, messages)
+  -> Admin: AdminDashboard (stats, reports tabs, announcements CRUD)
+```
+
+---
+
+## 8. Real-Time Features
+
+| Feature | Table | Events | Filter |
+|---------|-------|--------|--------|
+| Group Chat | `group_messages` | * | `group_id=eq.${id}` |
+| Panel Messages | `panel_messages` | INSERT | None |
+| Peer Lobby | `peer_connect_lobby` | UPDATE | `id=eq.${lobbyId}` |
+
+Lifecycle: mount -> `supabase.channel().on().subscribe()` -> callback re-fetches -> unmount -> `removeChannel()`
+
+---
+
+## 9. Security Model
+
+### RLS Policy Summary
+
+| Pattern | Expression | Tables |
+|---------|-----------|--------|
+| Owner only | `auth.uid() = user_id` | Most user-scoped tables |
+| Group members | `is_group_member()` | group_messages, events, polls |
+| Parent read-only | `is_linked_parent()` | mood_entries, assignments (SELECT) |
+| Admin only | `has_role(uid, 'admin')` | bullying_reports, counselor_requests, announcements |
+| Anonymous write | `true` on INSERT | bullying_reports |
+| Immutable | `false` on DELETE | bullying_reports |
+
+### Critical Security Features
+
+- **Bullying reports**: No user_id column. INSERT open to all. SELECT/UPDATE admin only. DELETE blocked.
+- **Profile visibility**: Own profile, group co-members, peer connect partners, or trusted_peers only.
+- **Group join**: Must insert as `role = 'member'` (RLS blocks admin/moderator self-promotion).
+- **Storage**: `group-photos` private bucket, group-member-scoped RLS, signed URLs.
+- **XSS**: DOMPurify sanitization on AI markdown output. Link protocol validation.
+- **Edge functions**: Manual JWT verification via `getClaims` for audit logging.
+
+---
+
+## 10. Cross-Role Communication
+
+```
+Student                    Parent                     Admin
+  |                          |                          |
+  |--generate link code----->|--enter code, link------->|
+  |                          |                          |
+  |<--panel_message (encour.)|                          |
+  |                          |<--panel_message (alert)--|
+  |                          |                          |
+  |<--announcement-----------|<--announcement-----------|--publish announcement
+  |                          |                          |
+  |--bullying report (anon)--+------------------------->|--review & update status
+  |--counselor request-------|------------------------->|--manage request
+```
+
+---
+
+## 11. Key Decisions & Tradeoffs
+
+1. **Single role column on profiles**: Simple, matches use case. No multi-role support.
+2. **Manual JWT in edge functions**: Enables logging + custom errors. More boilerplate.
+3. **Client-side chat history**: Stateless functions. Token costs grow with conversation.
+4. **Full re-fetch on realtime**: Consistent. Scales poorly (N+1 profile lookups).
+5. **Anonymous bullying reports**: No user_id column. No follow-up possible.
+6. **Auto-confirm signups**: Low friction. No email verification.
+
+---
+
+## 12. Edge Cases & Failure Modes
+
+| Scenario | Behavior |
+|----------|----------|
+| JWT expires | Auto-refreshed via `autoRefreshToken: true` |
+| Parent views before link active | RLS blocks, empty data |
+| Student revokes link | Parent queries return empty immediately |
+| Admin self-assign attempt | Trigger downgrades to student |
+| Group join as admin | RLS rejects (must be 'member') |
+| 1000+ group messages | Hit Supabase default limit, no pagination |
+| AI 429 rate limit | Toast error shown |
+| AI 402 no credits | Toast error shown |
+| AI returns bad JSON | Raw string returned with warning field |
+| SSE stream interrupts | Partial message shown |
+| WebSocket disconnects | Auto-reconnect with backoff |
+
+---
+
+## 13. Setup & Usage
 
 ```bash
-# Install dependencies
-bun install
-
-# Start dev server
-bun run dev
-# → http://localhost:5173
+bun install && bun run dev   # http://localhost:5173
 ```
 
-### Environment Variables
+**Test accounts**: Student/Parent via /auth signup. Admin: signup then SQL `UPDATE profiles SET role = 'admin' WHERE user_id = '<uuid>'`
 
-Automatically managed by Lovable Cloud. The `.env` file is auto-generated:
-
-```
-VITE_SUPABASE_URL=https://nxaztzpuqdivemdemvga.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJ...
-VITE_SUPABASE_PROJECT_ID=nxaztzpuqdivemdemvga
-```
-
-**Do not edit `.env` manually.**
-
-### Edge Function Secrets
-
-Configured via Lovable Cloud secrets management:
-
-| Secret | Purpose |
-|--------|---------|
-| `LOVABLE_API_KEY` | Lovable AI Gateway access |
-| `OPENAI_API_KEY` | OpenAI API fallback |
-| `DEEPSEEK_API_KEY` | DeepSeek API |
-| `NEWSDATA_API_KEY` | News data provider |
-| `NEWS_API_KEY` | Secondary news API |
-
-### Database Migrations
-
-All migrations are in `supabase/migrations/` and auto-applied. To add a new migration, use the Lovable migration tool (do not create files manually).
-
-### Project Structure
-
-```
-├── src/
-│   ├── App.tsx                  # Route definitions
-│   ├── pages/                   # Page-level components (one per route)
-│   ├── components/              # Shared and feature components
-│   │   └── ui/                  # shadcn/ui primitives
-│   ├── hooks/                   # Custom React hooks
-│   ├── integrations/supabase/   # Auto-generated client + types
-│   └── data/                    # Static data files
-├── supabase/
-│   ├── config.toml              # Edge function config
-│   ├── functions/               # 19 Deno edge functions
-│   └── migrations/              # SQL migrations (read-only)
-├── public/                      # Static assets
-└── index.html                   # Entry point
-```
-
-### Creating an Admin User
-
-Admin role cannot be self-assigned. To promote a user to admin:
-
-1. Use the Lovable Cloud backend interface
-2. Run a service-role query:
-   ```sql
-   UPDATE profiles SET role = 'admin' WHERE user_id = '<user-uuid>';
-   ```
-   (The `prevent_admin_self_assign` trigger only blocks non-superuser contexts.)
+**Test parent link**: Student Profile -> Generate Code -> Parent Dashboard -> Enter Code -> Link
 
 ---
 
-## 8. Limitations
+## 14. Limitations & Technical Debt
 
-### Known Constraints
+### Critical
+1. No route-level role protection on pillar pages (RoleGuard unused)
+2. Group chat N+1 query (profile lookup per message)
+3. No pagination on any list view
 
-1. **No route-level role protection.** All pillar routes (e.g., `/mental-health`, `/finance`) are accessible by any authenticated user. `RoleGuard` exists but is not applied to all routes. RLS prevents unauthorized data access at the database level, but the UI is still visible.
+### Moderate
+4. Messages always resolve to first linked child
+5. Link codes never expire
+6. Group photo signed URLs expire after 1 year
+7. AI chat history not persisted server-side
 
-2. **Single-role model.** Users can only have one role. A parent who is also a school admin cannot hold both roles simultaneously.
+### Minor
+8. Inconsistent state management (TanStack Query vs useState)
+9. TypeScript `as any` casts bypass type safety
+10. No client-side AI rate limiting
+11. Announcement target_roles not enforced by RLS
+12. Missing logout cleanup for realtime subscriptions
 
-3. **No pagination for large datasets.** Messages, announcements, and reports use `.limit()` but lack true pagination with cursors or offset.
+---
 
-4. **No push notifications.** The `Notifications` menu item shows "coming soon." Mobile push notifications via Capacitor are not implemented.
-
-5. **Message recipient lookup is limited.** The Messages page sends to the first linked account found. There is no user search or address book.
-
-6. **No email notifications.** Status changes on bullying reports, counselor requests, or mentor requests are not emailed to the submitter.
-
-7. **No rate limiting on edge functions.** While Supabase has infrastructure-level limits, there is no per-user rate limiting on AI chat or other expensive operations.
-
-8. **Peer Connect requires live users.** The matching system only works with simultaneously online users. There is a test mode with an AI mock user, but real matching is not functional until sufficient user base exists.
-
-9. **Announcement filtering.** Announcements are stored with a `school` column but filtering by the viewer's school is not enforced — all announcements are visible to all authenticated users.
-
-10. **No audit logging.** Admin actions (status changes, announcement deletions) are not logged to an audit trail.
-
-### Technical Debt
-
-- `Messages.tsx` has duplicated parent-link lookup logic (lines 92–126)
-- `AdminDashboard.tsx` uses `any` type for announcements state
-- The `profiles` table stores `role` directly instead of using a separate `user_roles` table (acceptable for current use case but limits future flexibility)
-- Some components use hardcoded color classes instead of design tokens (flagged by linter)
+*Generated from the Stone Path AI Hub codebase, April 2026.*
