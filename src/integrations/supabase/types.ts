@@ -1225,6 +1225,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_parent_link: {
+        Args: { _code: string }
+        Returns: {
+          message: string
+          student_id: string
+          success: boolean
+        }[]
+      }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
