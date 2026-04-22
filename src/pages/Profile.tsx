@@ -64,6 +64,16 @@ const Profile = () => {
       setUser(session.user);
       setFullName(session.user.user_metadata?.full_name || "");
       fetchProfile(session.user.id);
+      // Load any existing pending link code so the student can re-share it
+      supabase
+        .from("parent_student_links")
+        .select("link_code, status")
+        .eq("student_id", session.user.id)
+        .eq("status", "pending")
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data?.link_code) setLinkCode(data.link_code);
+        });
     });
   }, [navigate]);
 
