@@ -364,26 +364,31 @@ const Profile = () => {
                 onClick={async () => {
                   if (!user) return;
                   setGeneratingCode(true);
+
+                  // If a pending code already exists, just show it
+                  const { data: existing } = await supabase
+                    .from("parent_student_links")
+                    .select("link_code")
+                    .eq("student_id", user.id)
+                    .eq("status", "pending")
+                    .maybeSingle();
+
+                  if (existing?.link_code) {
+                    setLinkCode(existing.link_code);
+                    toast.success("Link code loaded!");
+                    setGeneratingCode(false);
+                    return;
+                  }
+
                   const code = Math.random().toString(36).substring(2, 8).toUpperCase();
                   const { error } = await supabase.from("parent_student_links").insert({
                     student_id: user.id,
-                    parent_id: user.id, // placeholder, parent will update
+                    parent_id: user.id, // placeholder, replaced when a parent claims it
                     link_code: code,
                     status: "pending",
                   });
                   if (error) {
-                    if (error.code === "23505") {
-                      // Already has a code, fetch it
-                      const { data } = await supabase
-                        .from("parent_student_links")
-                        .select("link_code")
-                        .eq("student_id", user.id)
-                        .single();
-                      if (data?.link_code) setLinkCode(data.link_code);
-                      else toast.error("Failed to generate code");
-                    } else {
-                      toast.error("Failed to generate code");
-                    }
+                    toast.error("Failed to generate code");
                   } else {
                     setLinkCode(code);
                     toast.success("Link code generated!");
