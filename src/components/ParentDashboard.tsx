@@ -142,36 +142,19 @@ export const ParentDashboard = () => {
     }
     setLinking(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { setLinking(false); return; }
-
-    // Find the link code to get student_id
-    const { data: existingLink } = await supabase
-      .from("parent_student_links")
-      .select("id, student_id, status")
-      .eq("link_code", linkCode.trim().toUpperCase())
-      .single();
-
-    if (!existingLink) {
-      toast.error("Invalid link code. Ask your child to generate one from their profile.");
-      setLinking(false);
-      return;
-    }
-
-    if (existingLink.status === "active") {
-      toast.info("This link is already active!");
-      setLinking(false);
-      return;
-    }
-
-    // Update the existing pending link
-    const { error } = await supabase
-      .from("parent_student_links")
-      .update({ parent_id: session.user.id, status: "active" })
-      .eq("id", existingLink.id);
+    const { data, error } = await supabase.rpc("claim_parent_link", {
+      _code: linkCode.trim().toUpperCase(),
+    });
 
     if (error) {
       toast.error("Failed to link. Please try again.");
+      setLinking(false);
+      return;
+    }
+
+    const result = Array.isArray(data) ? data[0] : data;
+    if (!result?.success) {
+      toast.error(result?.message || "Invalid link code");
     } else {
       toast.success("Successfully linked to your child's account!");
       setLinkCode("");
