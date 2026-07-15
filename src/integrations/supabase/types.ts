@@ -1089,6 +1089,21 @@ export type Database = {
         }
         Relationships: []
       }
+      test: {
+        Row: {
+          id: number
+          name: string | null
+        }
+        Insert: {
+          id: number
+          name?: string | null
+        }
+        Update: {
+          id?: number
+          name?: string | null
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
