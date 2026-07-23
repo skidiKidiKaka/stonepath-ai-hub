@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Send, Settings, Sparkles, Paperclip, X } from "lucide-react";
+import { Bot, Send, Settings, Sparkles, Paperclip, X, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Select,
   SelectContent,
@@ -13,9 +14,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type MessageContent =
+  | string
+  | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+
 interface Message {
   role: "user" | "assistant";
-  content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+  content: MessageContent;
 }
 
 interface UploadedFile {
@@ -34,6 +39,8 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [provider, setProvider] = useState<"lovable" | "deepseek">("lovable");
   const [showSettings, setShowSettings] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
@@ -47,9 +54,68 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      setIsLoadingHistory(true);
+      try {
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) {
+          setMessages([]);
+          return;
+        }
+        const { data, error } = await supabase
+          .from("chat_messages")
+          .select("role, content")
+          .eq("user_id", userData.user.id)
+          .order("created_at", { ascending: true });
+        if (error) throw error;
+        if (!cancelled) {
+          setMessages(
+            (data ?? []).map((r) => ({
+              role: r.role as "user" | "assistant",
+              content: r.content as MessageContent,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load chat history:", err);
+        if (!cancelled) {
+          toast({
+            title: "Couldn't load history",
+            description: err instanceof Error ? err.message : "Unknown error",
+            variant: "destructive",
+          });
+        }
+      } finally {
+        if (!cancelled) setIsLoadingHistory(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, toast]);
+
+  const persistMessage = async (role: "user" | "assistant", content: MessageContent) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
+      const { error } = await supabase.from("chat_messages").insert({
+        user_id: userData.user.id,
+        role,
+        content: content as any,
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.error("Failed to save message:", err);
+    }
+  };
+
   const streamChat = async (userMessage: string) => {
     const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
-    
+    let assistantMessage = "";
+
     try {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
@@ -57,9 +123,9 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           messages: [...messages, { role: "user", content: userMessage }],
-          provider 
+          provider,
         }),
       });
 
@@ -73,12 +139,11 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let textBuffer = "";
-      let assistantMessage = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         textBuffer += decoder.decode(value, { stream: true });
 
         let newlineIndex: number;
@@ -101,7 +166,7 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
               setMessages(prev => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
-                  return prev.map((m, i) => 
+                  return prev.map((m, i) =>
                     i === prev.length - 1 ? { ...m, content: assistantMessage } : m
                   );
                 }
@@ -113,6 +178,10 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
             break;
           }
         }
+      }
+
+      if (assistantMessage) {
+        await persistMessage("assistant", assistantMessage);
       }
     } catch (error) {
       console.error("Chat error:", error);
@@ -179,20 +248,47 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleClearConversation = async () => {
+    if (messages.length === 0 || isClearing) return;
+    setIsClearing(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        setMessages([]);
+        return;
+      }
+      const { error } = await supabase
+        .from("chat_messages")
+        .delete()
+        .eq("user_id", userData.user.id);
+      if (error) throw error;
+      setMessages([]);
+    } catch (err) {
+      console.error("Failed to clear conversation:", err);
+      toast({
+        title: "Couldn't clear conversation",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const handleSend = async () => {
     if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
 
     const userMessage = input.trim();
     const files = [...uploadedFiles];
-    
+
     setInput("");
     setUploadedFiles([]);
 
-    let messageContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    let messageContent: MessageContent;
 
     if (files.length > 0) {
       const contentParts: Array<{ type: string; text?: string; image_url?: { url: string } }> = [];
-      
+
       if (userMessage) {
         contentParts.push({ type: "text", text: userMessage });
       }
@@ -220,15 +316,9 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
     setMessages(prev => [...prev, { role: "user", content: messageContent }]);
     setIsLoading(true);
 
+    await persistMessage("user", messageContent);
     await streamChat(userMessage || "Analyze the uploaded file(s)");
     setIsLoading(false);
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
   };
 
   return (
@@ -247,6 +337,16 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
                 onClick={() => setShowSettings(!showSettings)}
               >
                 <Settings className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleClearConversation}
+                disabled={messages.length === 0 || isClearing || isLoading}
+                aria-label="Clear conversation"
+                title="Clear conversation"
+              >
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -277,7 +377,12 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
 
         <ScrollArea className="flex-1 pr-4" ref={scrollRef}>
           <div className="space-y-4 py-4">
-            {messages.length === 0 ? (
+            {isLoadingHistory ? (
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                <span>Loading history...</span>
+              </div>
+            ) : messages.length === 0 ? (
               <div className="text-center text-muted-foreground py-12">
                 <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p>Start a conversation with the AI assistant</p>
@@ -348,7 +453,7 @@ export const AiChatDialog = ({ open, onOpenChange }: AiChatDialogProps) => {
               ))}
             </div>
           )}
-          
+
           <div className="flex gap-2">
             <input
               ref={fileInputRef}
